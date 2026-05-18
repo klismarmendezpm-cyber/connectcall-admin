@@ -145,14 +145,6 @@ export const Login = () => {
             </div>
           </form>
 
-          <div className="mt-6 border-t border-slate-100 pt-6">
-            <div className="text-xs text-center text-slate-500">
-              <p>Prototype Access:</p>
-              <p className="font-mono mt-1 bg-slate-50 p-2 rounded border border-slate-100">
-                admin / password123
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>);

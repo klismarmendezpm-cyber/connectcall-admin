@@ -29,17 +29,6 @@ interface AuthContextType {
   hasPermission: (requiredRoles: Role[]) => boolean;
 }
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-// Mock initial user for prototype purposes if Supabase isn't connected
-const MOCK_USER: User = {
-  id: 1,
-  username: 'admin',
-  email: 'admin@company.com',
-  full_name: 'System Administrator',
-  role_id: 1,
-  role_name: 'admin',
-  is_active: true,
-  last_login_at: new Date().toISOString()
-};
 export const AuthProvider = ({ children }: {children: ReactNode;}) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -114,16 +103,11 @@ export const AuthProvider = ({ children }: {children: ReactNode;}) => {
         if (error) {
           console.error('Supabase auth_users lookup failed:', error);
         }
-        // Fallback to mock for prototype if DB is empty/failing
-        if (usernameOrEmail === 'admin' && password === 'password123') {
-          authenticatedUser = MOCK_USER;
-        } else {
-          await logFailedAttempt(usernameOrEmail);
-          return {
-            success: false,
-            error: 'Invalid credentials or inactive account'
-          };
-        }
+        await logFailedAttempt(usernameOrEmail);
+        return {
+          success: false,
+          error: 'Invalid credentials or inactive account'
+        };
       } else {
         const dbUser = users[0];
         const { data: roleData, error: roleError } = await supabase.
@@ -171,15 +155,13 @@ export const AuthProvider = ({ children }: {children: ReactNode;}) => {
       }
       if (authenticatedUser) {
         // 3. Update last login
-        if (authenticatedUser.id !== MOCK_USER.id) {
-          await supabase.
-          from('auth_users').
-          update({
-            last_login_at: new Date().toISOString()
-            // last_login_ip would be set by a secure backend/edge function in reality
-          }).
-          eq('user_id', authenticatedUser.id);
-        }
+        await supabase.
+        from('auth_users').
+        update({
+          last_login_at: new Date().toISOString()
+          // last_login_ip would be set by a secure backend/edge function in reality
+        }).
+        eq('user_id', authenticatedUser.id);
         // 4. Log successful attempt
         await supabase.from('auth_login_attempts').insert([
         {
