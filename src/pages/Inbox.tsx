@@ -559,7 +559,7 @@ export const Inbox = () => {
               </div>
 
               {/* Reply Box */}
-              {canEdit &&
+              {canReply &&
             <div className="p-4 bg-white border-t border-slate-200 flex-shrink-0">
                   {!selectedMessage.is_closed || selectedMessage.reply_text ?
               <div className="space-y-3">

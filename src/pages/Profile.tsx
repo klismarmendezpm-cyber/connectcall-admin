@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabaseClient';
 import { logAudit } from '../lib/auditLogger';
 import {
   getProfilePhoto,
+  prepareProfilePhoto,
   removeProfilePhoto,
   saveProfilePhoto
 } from '../lib/profilePhoto';
@@ -24,7 +25,7 @@ export const Profile = () => {
     setProfilePhoto(getProfilePhoto(user?.id));
   }, [user]);
 
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
@@ -33,14 +34,17 @@ export const Profile = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const photoDataUrl = reader.result?.toString() || '';
+    try {
+      const photoDataUrl = await prepareProfilePhoto(file);
       saveProfilePhoto(user.id, photoDataUrl);
       setProfilePhoto(photoDataUrl);
       toast.success('Profile photo updated');
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading profile photo:', error);
+      toast.error('Could not process profile photo');
+    } finally {
+      event.target.value = '';
+    }
   };
 
   const handleRemovePhoto = () => {
