@@ -64,7 +64,6 @@ export const Profile = () => {
       from('auth_users').
       update({
         full_name: fullName,
-        email,
         updated_at: new Date().toISOString()
       }).
       eq('user_id', user.id);
@@ -74,7 +73,7 @@ export const Profile = () => {
       const nextUser = {
         ...user,
         full_name: fullName,
-        email
+        email: user.email
       };
       localStorage.setItem('vault_user', JSON.stringify(nextUser));
 
@@ -196,8 +195,11 @@ export const Profile = () => {
               type="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              disabled
               className="input-field mt-1" />
+              <p className="text-xs text-slate-500 mt-1">
+                Email is managed by Supabase Auth.
+              </p>
             </div>
 
             <div>

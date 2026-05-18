@@ -6,9 +6,9 @@
 -- browser is not compatible with strong RLS. Move login to Supabase Auth or a
 -- SECURITY DEFINER RPC/Edge Function before enabling this in production.
 --
--- Expected JWT role values:
---   app_metadata.role = 'admin' | 'manager' | 'readonly'
--- or user_metadata.role with the same values.
+-- Role resolution:
+--   1. app_metadata.role / user_metadata.role, when present.
+--   2. auth_users + auth_roles matched by the Supabase Auth JWT email.
 
 begin;
 
@@ -42,10 +42,20 @@ create or replace function public.app_jwt_role()
 returns text
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select coalesce(
     auth.jwt() -> 'app_metadata' ->> 'role',
     auth.jwt() -> 'user_metadata' ->> 'role',
+    (
+      select ar.role_key
+      from auth_users au
+      join auth_roles ar on ar.role_id = au.role_id
+      where lower(coalesce(au.email, '')) = lower(coalesce(auth.jwt() ->> 'email', ''))
+        and au.is_active = 1
+      limit 1
+    ),
     'readonly'
   );
 $$;
@@ -55,7 +65,11 @@ returns text
 language sql
 stable
 as $$
-  select lower(coalesce(auth.jwt() ->> 'email', ''));
+  select lower(coalesce(
+    auth.jwt() ->> 'email',
+    auth.jwt() -> 'user' ->> 'email',
+    ''
+  ));
 $$;
 
 create or replace function public.app_user_id()
@@ -84,6 +98,88 @@ as $$
   limit 1;
 $$;
 
+create or replace function public.app_user_id_from_email(email text)
+returns bigint
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select au.user_id
+  from auth_users au
+  where lower(coalesce(au.email, '')) = lower(coalesce(email, ''))
+    and au.is_active = 1
+  limit 1;
+$$;
+
+grant execute on function public.app_user_id_from_email(text) to authenticated;
+
+create or replace function public.app_current_user_profile()
+returns table(
+  user_id bigint,
+  username text,
+  email text,
+  full_name text,
+  role_id bigint,
+  is_active boolean,
+  last_login_at timestamp,
+  role_key text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select au.user_id,
+         au.username,
+         au.email,
+         au.full_name,
+         au.role_id,
+         au.is_active = 1,
+         au.last_login_at,
+         ar.role_key
+  from auth_users au
+  left join auth_roles ar on ar.role_id = au.role_id
+  where lower(coalesce(au.email, '')) = public.app_jwt_email()
+    and au.is_active = 1
+  limit 1;
+$$;
+
+grant execute on function public.app_current_user_profile() to authenticated;
+
+create or replace function public.app_current_user_profile_by_email(email text)
+returns table(
+  user_id bigint,
+  username text,
+  email text,
+  full_name text,
+  role_id bigint,
+  is_active boolean,
+  last_login_at timestamp,
+  role_key text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select au.user_id,
+         au.username,
+         au.email,
+         au.full_name,
+         au.role_id,
+         au.is_active = 1,
+         au.last_login_at,
+         ar.role_key
+  from auth_users au
+  left join auth_roles ar on ar.role_id = au.role_id
+  where lower(coalesce(au.email, '')) = lower(coalesce(email, ''))
+    and au.is_active = 1
+  limit 1;
+$$;
+
+grant execute on function public.app_current_user_profile_by_email(text) to authenticated;
+
 create or replace function public.app_is_admin()
 returns boolean
 language sql
@@ -108,6 +204,23 @@ as $$
   select public.app_jwt_role() in ('admin', 'manager');
 $$;
 
+create or replace function public.resolve_login_email(login_input text)
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select au.email
+  from auth_users au
+  where au.is_active = 1
+    and (
+      lower(coalesce(trim(au.username), '')) = lower(trim(login_input))
+      or lower(coalesce(au.email, '')) = lower(trim(login_input))
+    )
+  limit 1;
+$$;
+
 grant execute on function public.app_jwt_role() to authenticated;
 grant execute on function public.app_jwt_email() to authenticated;
 grant execute on function public.app_user_id() to authenticated;
@@ -115,6 +228,7 @@ grant execute on function public.app_person_id() to authenticated;
 grant execute on function public.app_is_admin() to authenticated;
 grant execute on function public.app_is_manager() to authenticated;
 grant execute on function public.app_can_manage() to authenticated;
+grant execute on function public.resolve_login_email(text) to anon, authenticated;
 
 -- Lock down table privileges first.
 revoke all on
@@ -375,3 +489,62 @@ with check (public.app_is_admin());
 notify pgrst, 'reload schema';
 
 commit;
+
+-- Sync auth.users -> public.auth_users
+-- When a user is created/updated in Supabase Auth (auth.users), keep the
+-- public.auth_users profile table in sync so Table Editor or other DB
+-- inserts/changes and the Auth system remain consistent.
+
+create or replace function public.sync_auth_user_to_profiles()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  _email text := lower(coalesce(NEW.email, ''));
+begin
+  -- Protect the auth.user creation: swallow sync errors so Auth doesn't fail.
+  begin
+    -- Try updating an existing profile by email
+    update public.auth_users
+    set user_id = NEW.id,
+        email = _email,
+        username = coalesce(NEW.raw_user_meta_data->>'username', split_part(_email, '@', 1)),
+        full_name = coalesce(NEW.raw_user_meta_data->>'full_name', NEW.email),
+        is_active = true,
+        last_login_at = NEW.last_sign_in_at,
+        updated_at = now()
+    where lower(coalesce(email, '')) = _email;
+
+    if found then
+      return NEW;
+    end if;
+
+    -- Otherwise insert a new profile row
+    insert into public.auth_users(user_id, email, username, full_name, is_active, created_at, last_login_at)
+    values (
+      NEW.id,
+      _email,
+      coalesce(NEW.raw_user_meta_data->>'username', split_part(_email, '@', 1)),
+      coalesce(NEW.raw_user_meta_data->>'full_name', NEW.email),
+      true,
+      now(),
+      NEW.last_sign_in_at
+    );
+
+  exception when others then
+    -- Log and continue: do not prevent auth user creation
+    raise notice 'sync_auth_user_to_profiles failed for %: %', _email, sqlerrm;
+    return NEW;
+  end;
+
+  return NEW;
+end;
+$$;
+
+drop trigger if exists sync_auth_user_to_public_auth_users on auth.users;
+create trigger sync_auth_user_to_public_auth_users
+after insert or update of email, raw_user_meta_data, last_sign_in_at on auth.users
+for each row execute function public.sync_auth_user_to_profiles();
+
+grant execute on function public.sync_auth_user_to_profiles() to authenticated, anon;
