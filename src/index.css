@@ -1,0 +1,101 @@
+/* @import url() FONT IMPORTS MUST ALWAYS BE AT THE VERY TOP OF THIS FILE, ABOVE THE TAILWIND IMPORTS — DO NOT DELETE THIS COMMENT */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* CRITICAL: THE FOLLOWING TAILWIND IMPORTS MUST NEVER BE DELETED OR REORDERED — DO NOT DELETE THIS COMMENT */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* END TAILWIND IMPORTS — ALL OTHER CSS MUST GO BELOW THIS LINE */
+
+@layer base {
+  body {
+    @apply bg-brand-background text-slate-800 font-sans antialiased;
+  }
+}
+@layer components {
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden;
+  }
+  .input-field {
+    @apply w-full rounded-lg border border-slate-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-shadow disabled:bg-slate-50 disabled:text-slate-500;
+  }
+  .btn-primary {
+    @apply bg-brand-primary text-white px-4 py-2 rounded-lg hover:bg-brand-primary/90 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-white text-slate-700 border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-slate-200 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-danger {
+    @apply bg-brand-danger text-white px-4 py-2 rounded-lg hover:bg-brand-danger/90 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-brand-danger focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+}
+
+html.theme-dark body {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+html.theme-dark .bg-brand-background,
+html.theme-dark .bg-slate-50,
+html.theme-dark .bg-slate-50\/30,
+html.theme-dark .bg-slate-50\/50 {
+  background-color: #0f172a !important;
+}
+
+html.theme-dark .card,
+html.theme-dark .bg-white,
+html.theme-dark header,
+html.theme-dark aside,
+html.theme-dark table,
+html.theme-dark .rounded-xl.border,
+html.theme-dark .rounded-lg.border {
+  background-color: #111827 !important;
+  border-color: #334155 !important;
+}
+
+html.theme-dark .bg-slate-100,
+html.theme-dark .hover\:bg-slate-50:hover,
+html.theme-dark .hover\:bg-slate-100:hover {
+  background-color: #1e293b !important;
+}
+
+html.theme-dark .text-slate-900,
+html.theme-dark .text-slate-800,
+html.theme-dark .text-slate-700 {
+  color: #f8fafc !important;
+}
+
+html.theme-dark .text-slate-600,
+html.theme-dark .text-slate-500,
+html.theme-dark .text-slate-400 {
+  color: #cbd5e1 !important;
+}
+
+html.theme-dark .border-slate-100,
+html.theme-dark .border-slate-200,
+html.theme-dark .border-slate-300,
+html.theme-dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+html.theme-dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #334155 !important;
+}
+
+html.theme-dark .input-field,
+html.theme-dark input,
+html.theme-dark select,
+html.theme-dark textarea {
+  background-color: #0f172a !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+
+html.theme-dark input::placeholder,
+html.theme-dark textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.theme-dark .btn-secondary {
+  background-color: #1e293b !important;
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
