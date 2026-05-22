@@ -13,7 +13,10 @@ import {
   Shield } from
 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-export const Sidebar = () => {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+export const Sidebar: React.FC<SidebarProps> = ({ onNavigate }) => {
   const { user } = useAuth();
   const navItems = [
   {
@@ -81,7 +84,7 @@ export const Sidebar = () => {
     (item) => user && item.roles.includes(user.role_name)
   );
   return (
-    <aside className="w-64 bg-brand-primary text-white flex flex-col h-full hidden md:flex flex-shrink-0">
+    <aside className="w-full bg-brand-primary text-white flex flex-col h-full flex-shrink-0 shadow-2xl md:shadow-none">
       <div className="h-16 flex items-center px-6 border-b border-white/10">
         <KeyRound className="w-6 h-6 text-brand-accent mr-3" />
         <span className="font-bold text-lg tracking-tight">
@@ -96,6 +99,7 @@ export const Sidebar = () => {
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={onNavigate}
               className={({ isActive }) =>
               `flex items-center px-3 py-2.5 rounded-lg transition-colors group ${isActive ? 'bg-white/10 text-white font-medium' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`
               }>

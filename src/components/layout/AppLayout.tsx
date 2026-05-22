@@ -22,16 +22,16 @@ export const AppLayout = () => {
       {/* Mobile Sidebar Overlay */}
       {mobileMenuOpen &&
       <div
-        className="fixed inset-0 bg-slate-900/50 z-20 md:hidden"
+        className="fixed inset-0 bg-slate-900/50 z-40 md:hidden"
         onClick={() => setMobileMenuOpen(false)} />
 
       }
 
       {/* Mobile Sidebar Wrapper */}
       <div
-        className={`fixed inset-y-0 left-0 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-200 ease-in-out z-30 md:z-auto`}>
+        className={`fixed inset-y-0 left-0 z-50 h-full w-72 max-w-[85vw] transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-200 ease-in-out md:relative md:z-auto md:w-64 md:max-w-none md:translate-x-0`}>
         
-        <Sidebar />
+        <Sidebar onNavigate={() => setMobileMenuOpen(false)} />
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
