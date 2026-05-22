@@ -34,6 +34,8 @@ export const Systems = () => {
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [orgFilter, setOrgFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const systemsPerPage = 6;
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentSystem, setCurrentSystem] = useState<Partial<System>>({});
@@ -78,6 +80,9 @@ export const Systems = () => {
   useEffect(() => {
     fetchData();
   }, []);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, orgFilter]);
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
@@ -213,6 +218,13 @@ export const Systems = () => {
     const matchesOrg = orgFilter ? system.org_id.toString() === orgFilter : true;
     return matchesSearch && matchesOrg;
   });
+  const totalPages = Math.max(1, Math.ceil(filteredSystems.length / systemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStart = (safeCurrentPage - 1) * systemsPerPage;
+  const paginatedSystems = filteredSystems.slice(
+    pageStart,
+    pageStart + systemsPerPage
+  );
   const columns: Column<System>[] = [
   {
     header: 'System Name',
@@ -339,9 +351,40 @@ export const Systems = () => {
 
         <DataTable
           columns={columns}
-          data={filteredSystems}
+          data={paginatedSystems}
           isLoading={isLoading}
           emptyMessage="No systems found matching your filters." />
+
+        {filteredSystems.length > systemsPerPage &&
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 text-sm">
+            <div className="text-slate-500">
+              Showing {pageStart + 1}-
+              {Math.min(pageStart + systemsPerPage, filteredSystems.length)} of{' '}
+              {filteredSystems.length} systems
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={safeCurrentPage === 1}
+              className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-40">
+                Previous
+              </button>
+              <span className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700">
+                Page {safeCurrentPage} of {totalPages}
+              </span>
+              <button
+              type="button"
+              onClick={() =>
+              setCurrentPage((page) => Math.min(totalPages, page + 1))
+              }
+              disabled={safeCurrentPage === totalPages}
+              className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-40">
+                Next
+              </button>
+            </div>
+          </div>
+        }
         
       </div>
 
