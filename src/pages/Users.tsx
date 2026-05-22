@@ -38,6 +38,8 @@ export const Users = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('true');
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 5;
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<Partial<AuthUser>>({
@@ -92,6 +94,9 @@ export const Users = () => {
   useEffect(() => {
     fetchData();
   }, []);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter, statusFilter]);
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
@@ -303,6 +308,13 @@ export const Users = () => {
     true;
     return matchesSearch && matchesRole && matchesStatus;
   });
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / usersPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStart = (safeCurrentPage - 1) * usersPerPage;
+  const paginatedUsers = filteredUsers.slice(
+    pageStart,
+    pageStart + usersPerPage
+  );
   const columns: Column<AuthUser>[] = [
   {
     header: 'User',
@@ -464,9 +476,40 @@ export const Users = () => {
 
         <DataTable
           columns={columns}
-          data={filteredUsers}
+          data={paginatedUsers}
           isLoading={isLoading}
           emptyMessage="No users found matching your filters." />
+
+        {filteredUsers.length > usersPerPage &&
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 text-sm">
+            <div className="text-slate-500">
+              Showing {pageStart + 1}-
+              {Math.min(pageStart + usersPerPage, filteredUsers.length)} of{' '}
+              {filteredUsers.length} users
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={safeCurrentPage === 1}
+              className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-40">
+                Previous
+              </button>
+              <span className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700">
+                Page {safeCurrentPage} of {totalPages}
+              </span>
+              <button
+              type="button"
+              onClick={() =>
+              setCurrentPage((page) => Math.min(totalPages, page + 1))
+              }
+              disabled={safeCurrentPage === totalPages}
+              className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-40">
+                Next
+              </button>
+            </div>
+          </div>
+        }
         
       </div>
 
