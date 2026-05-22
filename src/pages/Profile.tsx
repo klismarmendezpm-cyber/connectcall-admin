@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { logAudit } from '../lib/auditLogger';
 import {
+  getCustomProfilePhoto,
   getProfilePhoto,
   prepareProfilePhoto,
   removeProfilePhoto,
@@ -17,12 +18,14 @@ export const Profile = () => {
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [profilePhoto, setProfilePhoto] = useState('');
+  const [hasCustomPhoto, setHasCustomPhoto] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setFullName(user?.full_name || '');
     setEmail(user?.email || '');
     setProfilePhoto(getProfilePhoto(user?.id));
+    setHasCustomPhoto(!!getCustomProfilePhoto(user?.id));
   }, [user]);
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,6 +41,7 @@ export const Profile = () => {
       const photoDataUrl = await prepareProfilePhoto(file);
       saveProfilePhoto(user.id, photoDataUrl);
       setProfilePhoto(photoDataUrl);
+      setHasCustomPhoto(true);
       toast.success('Profile photo updated');
     } catch (error) {
       console.error('Error uploading profile photo:', error);
@@ -50,8 +54,9 @@ export const Profile = () => {
   const handleRemovePhoto = () => {
     if (!user) return;
     removeProfilePhoto(user.id);
-    setProfilePhoto('');
-    toast.success('Profile photo removed');
+    setProfilePhoto(getProfilePhoto(user.id));
+    setHasCustomPhoto(false);
+    toast.success('Default profile photo restored');
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -130,7 +135,7 @@ export const Profile = () => {
                 onChange={handlePhotoUpload}
                 className="hidden" />
               </label>
-              {profilePhoto &&
+              {hasCustomPhoto &&
               <button
                 type="button"
                 onClick={handleRemovePhoto}

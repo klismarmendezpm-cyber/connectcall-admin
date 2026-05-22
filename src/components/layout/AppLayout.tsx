@@ -18,7 +18,7 @@ export const AppLayout = () => {
     return <Navigate to="/login" replace />;
   }
   return (
-    <div className="flex h-screen bg-brand-background overflow-hidden">
+    <div className="flex h-dvh bg-brand-background overflow-hidden">
       {/* Mobile Sidebar Overlay */}
       {mobileMenuOpen &&
       <div

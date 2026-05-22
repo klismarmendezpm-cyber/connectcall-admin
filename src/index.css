@@ -9,6 +9,11 @@
 /* END TAILWIND IMPORTS — ALL OTHER CSS MUST GO BELOW THIS LINE */
 
 @layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
   body {
     @apply bg-brand-background text-slate-800 font-sans antialiased;
   }

@@ -1,9 +1,17 @@
+import defaultProfilePhoto from '../img/profile.jpg';
+
+export const DEFAULT_PROFILE_PHOTO = defaultProfilePhoto;
+
 export const getProfilePhotoKey = (userId: string | number) =>
 `vault_profile_photo_${userId}`;
 
-export const getProfilePhoto = (userId?: string | number) => {
+export const getCustomProfilePhoto = (userId?: string | number) => {
   if (!userId) return '';
   return localStorage.getItem(getProfilePhotoKey(userId)) || '';
+};
+
+export const getProfilePhoto = (userId?: string | number) => {
+  return getCustomProfilePhoto(userId) || DEFAULT_PROFILE_PHOTO;
 };
 
 export const saveProfilePhoto = (userId: string | number, photoDataUrl: string) => {
@@ -54,7 +62,7 @@ export const removeProfilePhoto = (userId: string | number) => {
   window.dispatchEvent(new CustomEvent('vault_profile_photo_changed', {
     detail: {
       userId,
-      photoDataUrl: ''
+      photoDataUrl: DEFAULT_PROFILE_PHOTO
     }
   }));
 };
