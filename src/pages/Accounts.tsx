@@ -466,8 +466,8 @@ export const Accounts = () => {
         <style>
           body { font-family: Inter, Arial, sans-serif; color: #0f172a; }
           table { border-collapse: collapse; width: 100%; }
-          .title { background: #0b2a4a; color: #ffffff; font-size: 22px; font-weight: 700; height: 38px; }
-          .subtitle { background: #e0f2fe; color: #075985; font-weight: 600; }
+          .title { background: #0b2a4a; color: #ffffff; font-size: 22px; font-weight: 700; height: 38px; text-align: center; vertical-align: middle; }
+          .subtitle { background: #e0f2fe; color: #075985; font-weight: 600; text-align: center; vertical-align: middle; }
           .meta-label { background: #f1f5f9; color: #475569; font-weight: 700; }
           .meta-value { background: #ffffff; color: #0f172a; }
           .summary-label { background: #0f172a; color: #ffffff; font-weight: 700; text-align: center; }
