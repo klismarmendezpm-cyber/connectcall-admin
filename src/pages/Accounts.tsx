@@ -6,7 +6,8 @@ import {
   Eye,
   EyeOff,
   Copy,
-  Check } from
+  Check,
+  Download } from
 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
@@ -373,6 +374,207 @@ export const Accounts = () => {
     toast.success('Copied to clipboard');
     setTimeout(() => setCopiedId(null), 2000);
   };
+  const escapeExcelValue = (value: unknown) =>
+  String(value ?? '').
+  replace(/&/g, '&amp;').
+  replace(/</g, '&lt;').
+  replace(/>/g, '&gt;').
+  replace(/"/g, '&quot;').
+  replace(/'/g, '&#39;');
+  const formatReportDate = (value?: string) => {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  };
+  const getFilterLabel = (
+  value: string,
+  options: {
+    value: string;
+    label: string;
+  }[],
+  fallback: string
+  ) => options.find((option) => option.value === value)?.label || fallback;
+  const exportAccountsReport = async () => {
+    if (filteredAccounts.length === 0) {
+      toast.error('No credentials available to export');
+      return;
+    }
+
+    const orgLabel = getFilterLabel(
+      orgFilter,
+      orgs.map((org) => ({
+        label: org.name,
+        value: org.id.toString()
+      })),
+      'All organizations'
+    );
+    const systemLabel = getFilterLabel(
+      systemFilter,
+      systems.map((system) => ({
+        label: system.name,
+        value: system.id.toString()
+      })),
+      'All systems'
+    );
+    const statusLabel = statusFilter || 'All statuses';
+    const generatedAt = new Date();
+    const activeCount = filteredAccounts.filter((account) => account.status === 'active').length;
+    const disabledCount = filteredAccounts.filter((account) => account.status === 'disabled').length;
+    const archivedCount = filteredAccounts.filter((account) => account.status === 'archived').length;
+    const sharedCount = filteredAccounts.filter((account) => account.is_shared).length;
+    const rows = filteredAccounts.map((account, index) => `
+      <tr>
+        <td class="center">${index + 1}</td>
+        <td>${escapeExcelValue(account.display_label || 'Unnamed Credential')}</td>
+        <td>${escapeExcelValue(account.username || '')}</td>
+        <td>${escapeExcelValue(account.people?.full_name || 'Unassigned')}</td>
+        <td>${escapeExcelValue(account.systems?.system_name || 'Unknown')}</td>
+        <td>${escapeExcelValue(account.systems?.orgs?.name || account.people?.orgs?.name || 'Unknown')}</td>
+        <td>${escapeExcelValue(account.ext_number || '')}</td>
+        <td>${escapeExcelValue(account.phone_line || '')}</td>
+        <td class="status status-${escapeExcelValue(account.status)}">${escapeExcelValue(account.status.toUpperCase())}</td>
+        <td class="center">${account.is_shared ? 'Yes' : 'No'}</td>
+        <td class="center">${account.pin_code ? 'Stored' : 'Empty'}</td>
+        <td>${escapeExcelValue(formatReportDate(account.created_at))}</td>
+      </tr>`
+    ).join('');
+    const workbook = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office"
+        xmlns:x="urn:schemas-microsoft-com:office:excel"
+        xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="UTF-8" />
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:ExcelWorksheet>
+                <x:Name>Accounts Report</x:Name>
+                <x:WorksheetOptions>
+                  <x:FreezePanes />
+                  <x:FrozenNoSplit />
+                  <x:SplitHorizontal>8</x:SplitHorizontal>
+                  <x:TopRowBottomPane>8</x:TopRowBottomPane>
+                  <x:ActivePane>2</x:ActivePane>
+                  <x:DisplayGridlines>False</x:DisplayGridlines>
+                </x:WorksheetOptions>
+              </x:ExcelWorksheet>
+            </x:ExcelWorksheets>
+          </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+        <style>
+          body { font-family: Inter, Arial, sans-serif; color: #0f172a; }
+          table { border-collapse: collapse; width: 100%; }
+          .title { background: #0b2a4a; color: #ffffff; font-size: 22px; font-weight: 700; height: 38px; }
+          .subtitle { background: #e0f2fe; color: #075985; font-weight: 600; }
+          .meta-label { background: #f1f5f9; color: #475569; font-weight: 700; }
+          .meta-value { background: #ffffff; color: #0f172a; }
+          .summary-label { background: #0f172a; color: #ffffff; font-weight: 700; text-align: center; }
+          .summary-value { background: #f8fafc; color: #0f172a; font-size: 16px; font-weight: 700; text-align: center; }
+          th { background: #0b2a4a; color: #ffffff; border: 1px solid #1e3a5f; font-weight: 700; text-align: center; height: 28px; }
+          td { border: 1px solid #cbd5e1; padding: 6px; vertical-align: middle; }
+          .center { text-align: center; }
+          .status { font-weight: 700; text-align: center; }
+          .status-active { background: #dcfce7; color: #166534; }
+          .status-disabled { background: #fee2e2; color: #991b1b; }
+          .status-archived { background: #e2e8f0; color: #334155; }
+          .note { color: #64748b; font-style: italic; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr><td class="title" colspan="12">Accounts & Credentials Report</td></tr>
+          <tr><td class="subtitle" colspan="12">ConnectCall Admin - Secure credential inventory</td></tr>
+          <tr></tr>
+          <tr>
+            <td class="meta-label" colspan="2">Generated at</td>
+            <td class="meta-value" colspan="4">${escapeExcelValue(generatedAt.toLocaleString())}</td>
+            <td class="meta-label" colspan="2">Generated by</td>
+            <td class="meta-value" colspan="4">${escapeExcelValue(user?.full_name || user?.username || 'Unknown')}</td>
+          </tr>
+          <tr>
+            <td class="meta-label" colspan="2">Search</td>
+            <td class="meta-value" colspan="4">${escapeExcelValue(searchQuery || 'No search filter')}</td>
+            <td class="meta-label" colspan="2">Organization</td>
+            <td class="meta-value" colspan="4">${escapeExcelValue(orgLabel)}</td>
+          </tr>
+          <tr>
+            <td class="meta-label" colspan="2">System</td>
+            <td class="meta-value" colspan="4">${escapeExcelValue(systemLabel)}</td>
+            <td class="meta-label" colspan="2">Status</td>
+            <td class="meta-value" colspan="4">${escapeExcelValue(statusLabel)}</td>
+          </tr>
+          <tr></tr>
+          <tr>
+            <td class="summary-label" colspan="2">Total</td>
+            <td class="summary-label" colspan="2">Active</td>
+            <td class="summary-label" colspan="2">Disabled</td>
+            <td class="summary-label" colspan="2">Archived</td>
+            <td class="summary-label" colspan="2">Shared</td>
+            <td class="summary-label" colspan="2">Secrets</td>
+          </tr>
+          <tr>
+            <td class="summary-value" colspan="2">${filteredAccounts.length}</td>
+            <td class="summary-value" colspan="2">${activeCount}</td>
+            <td class="summary-value" colspan="2">${disabledCount}</td>
+            <td class="summary-value" colspan="2">${archivedCount}</td>
+            <td class="summary-value" colspan="2">${sharedCount}</td>
+            <td class="summary-value" colspan="2">Hidden</td>
+          </tr>
+          <tr><td class="note" colspan="12">Sensitive PIN/secret values are intentionally excluded from this report.</td></tr>
+          <tr></tr>
+          <tr>
+            <th>#</th>
+            <th>Credential</th>
+            <th>Username</th>
+            <th>Assigned To</th>
+            <th>System</th>
+            <th>Organization</th>
+            <th>Extension</th>
+            <th>Phone Line</th>
+            <th>Status</th>
+            <th>Shared</th>
+            <th>Secret</th>
+            <th>Created At</th>
+          </tr>
+          ${rows}
+        </table>
+      </body>
+      </html>
+    `;
+    const blob = new Blob([workbook], {
+      type: 'application/vnd.ms-excel;charset=utf-8;'
+    });
+    const url = URL.createObjectURL(blob);
+    const filenameDate = generatedAt.toISOString().slice(0, 10);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `accounts-report-${filenameDate}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    await logAudit({
+      actor: user?.username || 'unknown',
+      action: 'view',
+      entity: 'accounts',
+      entity_id: 0,
+      metadata: {
+        report: 'accounts_excel_export',
+        exported_count: filteredAccounts.length,
+        includes_pin_values: false,
+        filters: {
+          search: searchQuery || null,
+          org: orgLabel,
+          system: systemLabel,
+          status: statusLabel
+        }
+      }
+    });
+    toast.success('Excel report downloaded');
+  };
   const filteredAccounts = accounts.filter((account) => {
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch =
@@ -565,7 +767,16 @@ export const Accounts = () => {
             Securely manage access credentials
           </p>
         </div>
-        {canEdit &&
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+          type="button"
+          onClick={exportAccountsReport}
+          disabled={filteredAccounts.length === 0}
+          className="btn-secondary flex items-center justify-center">
+            <Download className="w-4 h-4 mr-2" />
+            Export Excel
+          </button>
+          {canEdit &&
         <button
           onClick={() => {
             setCurrentAccount({
@@ -580,6 +791,7 @@ export const Accounts = () => {
             Add Credential
           </button>
         }
+        </div>
       </div>
 
       <div className="card p-4">
