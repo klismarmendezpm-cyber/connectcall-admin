@@ -22,6 +22,8 @@ export const AuditLog = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [entityFilter, setEntityFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const logsPerPage = 6;
   const fetchLogs = async () => {
     setIsLoading(true);
     try {
@@ -50,6 +52,9 @@ export const AuditLog = () => {
   useEffect(() => {
     fetchLogs();
   }, []);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, actionFilter, entityFilter]);
   // Extract unique actions and entities for filters
   const uniqueActions = Array.from(new Set(logs.map((l) => l.action))).sort();
   const uniqueEntities = Array.from(new Set(logs.map((l) => l.entity))).sort();
@@ -64,6 +69,13 @@ export const AuditLog = () => {
     const matchesEntity = entityFilter ? log.entity === entityFilter : true;
     return matchesSearch && matchesAction && matchesEntity;
   });
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / logsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStart = (safeCurrentPage - 1) * logsPerPage;
+  const paginatedLogs = filteredLogs.slice(
+    pageStart,
+    pageStart + logsPerPage
+  );
   const getActionColor = (action: string) => {
     switch (action) {
       case 'create':
@@ -185,9 +197,40 @@ export const AuditLog = () => {
 
         <DataTable
           columns={columns}
-          data={filteredLogs}
+          data={paginatedLogs}
           isLoading={isLoading}
           emptyMessage="No audit logs found matching your filters." />
+
+        {filteredLogs.length > logsPerPage &&
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 text-sm">
+            <div className="text-slate-500">
+              Showing {pageStart + 1}-
+              {Math.min(pageStart + logsPerPage, filteredLogs.length)} of{' '}
+              {filteredLogs.length} audit logs
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={safeCurrentPage === 1}
+              className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-40">
+                Previous
+              </button>
+              <span className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700">
+                Page {safeCurrentPage} of {totalPages}
+              </span>
+              <button
+              type="button"
+              onClick={() =>
+              setCurrentPage((page) => Math.min(totalPages, page + 1))
+              }
+              disabled={safeCurrentPage === totalPages}
+              className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-40">
+                Next
+              </button>
+            </div>
+          </div>
+        }
         
       </div>
     </div>);

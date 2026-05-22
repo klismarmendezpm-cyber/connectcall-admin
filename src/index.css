@@ -99,3 +99,191 @@ html.theme-dark .btn-secondary {
   border-color: #475569 !important;
   color: #f8fafc !important;
 }
+
+html.theme-dark {
+  color-scheme: dark;
+}
+
+html.theme-dark main,
+html.theme-dark .bg-brand-background {
+  background-color: #0f172a !important;
+}
+
+html.theme-dark .card,
+html.theme-dark .bg-white,
+html.theme-dark .bg-slate-50,
+html.theme-dark .bg-slate-100,
+html.theme-dark .bg-slate-50\/30,
+html.theme-dark .bg-slate-50\/50 {
+  background-color: #111827 !important;
+}
+
+html.theme-dark .bg-slate-100,
+html.theme-dark thead,
+html.theme-dark .bg-brand-primary\/5 {
+  background-color: #1e293b !important;
+}
+
+html.theme-dark .hover\:bg-slate-50:hover,
+html.theme-dark .hover\:bg-slate-100:hover,
+html.theme-dark .hover\:bg-white\/5:hover,
+html.theme-dark tr.hover\:bg-slate-50:hover {
+  background-color: #243244 !important;
+}
+
+html.theme-dark .text-brand-primary,
+html.theme-dark .hover\:text-brand-primary:hover {
+  color: #38bdf8 !important;
+}
+
+html.theme-dark .bg-brand-primary\/10 {
+  background-color: rgba(56, 189, 248, 0.16) !important;
+}
+
+html.theme-dark .border-brand-primary {
+  border-color: #38bdf8 !important;
+}
+
+html.theme-dark .btn-primary {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+html.theme-dark .btn-primary:hover {
+  background-color: #0369a1 !important;
+}
+
+html.theme-dark .btn-danger {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+html.theme-dark table,
+html.theme-dark tbody,
+html.theme-dark tr,
+html.theme-dark td,
+html.theme-dark th {
+  border-color: #334155 !important;
+}
+
+html.theme-dark tbody tr {
+  background-color: #111827 !important;
+}
+
+html.theme-dark tbody tr:hover {
+  background-color: #1e293b !important;
+}
+
+html.theme-dark .shadow-sm,
+html.theme-dark .shadow-lg,
+html.theme-dark .shadow-xl {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32) !important;
+}
+
+html.theme-dark .input-field:disabled,
+html.theme-dark input:disabled,
+html.theme-dark select:disabled,
+html.theme-dark textarea:disabled {
+  background-color: #1e293b !important;
+  color: #94a3b8 !important;
+}
+
+html.theme-dark option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+html.theme-dark input[type='checkbox'] {
+  accent-color: #38bdf8;
+}
+
+html.theme-dark .bg-green-100,
+html.theme-dark .bg-emerald-100 {
+  background-color: rgba(22, 163, 74, 0.18) !important;
+}
+
+html.theme-dark .text-green-800,
+html.theme-dark .text-emerald-800,
+html.theme-dark .text-brand-success {
+  color: #86efac !important;
+}
+
+html.theme-dark .border-green-200,
+html.theme-dark .border-emerald-200,
+html.theme-dark .border-brand-success\/20 {
+  border-color: rgba(134, 239, 172, 0.35) !important;
+}
+
+html.theme-dark .bg-red-100 {
+  background-color: rgba(220, 38, 38, 0.18) !important;
+}
+
+html.theme-dark .text-red-800,
+html.theme-dark .text-brand-danger {
+  color: #fca5a5 !important;
+}
+
+html.theme-dark .border-red-200,
+html.theme-dark .border-brand-danger\/20 {
+  border-color: rgba(252, 165, 165, 0.35) !important;
+}
+
+html.theme-dark .bg-orange-100,
+html.theme-dark .bg-amber-50,
+html.theme-dark .bg-brand-warning\/10 {
+  background-color: rgba(245, 158, 11, 0.18) !important;
+}
+
+html.theme-dark .text-orange-800,
+html.theme-dark .text-amber-700,
+html.theme-dark .text-brand-warning {
+  color: #fcd34d !important;
+}
+
+html.theme-dark .border-orange-200,
+html.theme-dark .border-amber-400,
+html.theme-dark .border-brand-warning\/20 {
+  border-color: rgba(252, 211, 77, 0.35) !important;
+}
+
+html.theme-dark .bg-blue-100 {
+  background-color: rgba(37, 99, 235, 0.2) !important;
+}
+
+html.theme-dark .text-blue-800 {
+  color: #93c5fd !important;
+}
+
+html.theme-dark .bg-purple-100 {
+  background-color: rgba(147, 51, 234, 0.2) !important;
+}
+
+html.theme-dark .text-purple-800 {
+  color: #d8b4fe !important;
+}
+
+html.theme-dark .bg-indigo-100 {
+  background-color: rgba(79, 70, 229, 0.2) !important;
+}
+
+html.theme-dark .text-indigo-600 {
+  color: #a5b4fc !important;
+}
+
+html.theme-dark .bg-brand-success\/10 {
+  background-color: rgba(22, 163, 74, 0.18) !important;
+}
+
+html.theme-dark .bg-brand-danger\/10 {
+  background-color: rgba(220, 38, 38, 0.18) !important;
+}
+
+html.theme-dark .fixed.inset-0.bg-slate-900\/50 {
+  background-color: rgba(2, 6, 23, 0.7) !important;
+}
+
+html.theme-dark .rounded-lg.border,
+html.theme-dark .rounded-xl.border,
+html.theme-dark .border {
+  border-color: #334155;
+}

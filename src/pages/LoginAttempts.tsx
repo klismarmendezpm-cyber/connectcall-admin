@@ -19,6 +19,8 @@ export const LoginAttempts = () => {
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const attemptsPerPage = 6;
   const fetchAttempts = async () => {
     setIsLoading(true);
     try {
@@ -46,6 +48,9 @@ export const LoginAttempts = () => {
   useEffect(() => {
     fetchAttempts();
   }, []);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
   const filteredAttempts = attempts.filter((attempt) => {
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch =
@@ -57,6 +62,13 @@ export const LoginAttempts = () => {
     true;
     return matchesSearch && matchesStatus;
   });
+  const totalPages = Math.max(1, Math.ceil(filteredAttempts.length / attemptsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStart = (safeCurrentPage - 1) * attemptsPerPage;
+  const paginatedAttempts = filteredAttempts.slice(
+    pageStart,
+    pageStart + attemptsPerPage
+  );
   const columns: Column<LoginAttempt>[] = [
   {
     header: 'Timestamp',
@@ -147,9 +159,40 @@ export const LoginAttempts = () => {
 
         <DataTable
           columns={columns}
-          data={filteredAttempts}
+          data={paginatedAttempts}
           isLoading={isLoading}
           emptyMessage="No login attempts found matching your filters." />
+
+        {filteredAttempts.length > attemptsPerPage &&
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 text-sm">
+            <div className="text-slate-500">
+              Showing {pageStart + 1}-
+              {Math.min(pageStart + attemptsPerPage, filteredAttempts.length)} of{' '}
+              {filteredAttempts.length} login attempts
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={safeCurrentPage === 1}
+              className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-40">
+                Previous
+              </button>
+              <span className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700">
+                Page {safeCurrentPage} of {totalPages}
+              </span>
+              <button
+              type="button"
+              onClick={() =>
+              setCurrentPage((page) => Math.min(totalPages, page + 1))
+              }
+              disabled={safeCurrentPage === totalPages}
+              className="btn-secondary text-sm px-3 py-1.5 disabled:opacity-40">
+                Next
+              </button>
+            </div>
+          </div>
+        }
         
       </div>
     </div>);
