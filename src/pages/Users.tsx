@@ -121,6 +121,10 @@ export const Users = () => {
       if (pass_hash) {
         userData.pass_hash = pass_hash;
       }
+      // Include temp_password for trigger to create Supabase Auth user
+      if (isNew && newPassword) {
+        userData.temp_password = newPassword;
+      }
       let savedUser;
       if (isNew) {
         if (!newPassword) {
