@@ -33,11 +33,11 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     window.removeEventListener('vault_profile_photo_changed', handlePhotoChange);
   }, [user?.id]);
   return (
-    <header className="app-header min-h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 z-10">
+    <header className="app-header bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 z-30">
       <div className="flex items-center">
         <button
           onClick={onMenuClick}
-          className="md:hidden p-2 -ml-2 mr-2 text-slate-500 hover:bg-slate-100 rounded-lg">
+          className="md:hidden min-h-11 min-w-11 p-2 -ml-1 mr-2 text-slate-500 hover:bg-slate-100 rounded-lg flex items-center justify-center">
           
           <Menu className="w-5 h-5" />
         </button>
@@ -50,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center space-x-3 p-1.5 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
+            className="min-h-11 flex items-center space-x-3 p-1.5 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200">
             
             <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-semibold">
               {profilePhoto ?
@@ -72,7 +72,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </button>
 
           {isDropdownOpen &&
-          <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-1 overflow-hidden">
+          <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-1 overflow-hidden z-50">
               <div className="px-4 py-3 border-b border-slate-100">
                 <p className="text-sm font-medium text-slate-900 truncate">
                   {user?.full_name}

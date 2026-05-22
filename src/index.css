@@ -302,8 +302,10 @@ html.theme-dark .border {
 }
 
 .app-header {
-  padding-top: env(safe-area-inset-top);
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+  padding-bottom: 0.5rem;
   min-height: calc(4rem + env(safe-area-inset-top));
+  flex-shrink: 0;
 }
 
 .app-main {
@@ -325,6 +327,11 @@ html.theme-dark .border {
 }
 
 @media (max-width: 640px) {
+  .app-header {
+    min-height: calc(4.25rem + env(safe-area-inset-top));
+    align-items: flex-end;
+  }
+
   .card {
     border-radius: 0.75rem;
   }
