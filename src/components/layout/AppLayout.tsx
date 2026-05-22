@@ -18,7 +18,7 @@ export const AppLayout = () => {
     return <Navigate to="/login" replace />;
   }
   return (
-    <div className="flex h-dvh bg-brand-background overflow-hidden">
+    <div className="app-shell flex min-h-screen h-dvh bg-brand-background overflow-hidden">
       {/* Mobile Sidebar Overlay */}
       {mobileMenuOpen &&
       <div
@@ -29,15 +29,15 @@ export const AppLayout = () => {
 
       {/* Mobile Sidebar Wrapper */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 h-full w-72 max-w-[85vw] transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-200 ease-in-out md:relative md:z-auto md:w-64 md:max-w-none md:translate-x-0`}>
+        className={`mobile-sidebar fixed inset-y-0 left-0 z-50 h-full w-72 max-w-[85vw] transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-200 ease-in-out md:relative md:z-auto md:w-64 md:max-w-none md:translate-x-0`}>
         
         <Sidebar onNavigate={() => setMobileMenuOpen(false)} />
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
+        <main className="app-main flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8">
+          <div className="w-full max-w-7xl mx-auto">
             <Outlet />
           </div>
         </main>

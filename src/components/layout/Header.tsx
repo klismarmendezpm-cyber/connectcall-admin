@@ -33,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     window.removeEventListener('vault_profile_photo_changed', handlePhotoChange);
   }, [user?.id]);
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-10">
+    <header className="app-header min-h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-6 z-10">
       <div className="flex items-center">
         <button
           onClick={onMenuClick}

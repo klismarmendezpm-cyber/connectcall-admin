@@ -13,9 +13,12 @@
   body,
   #root {
     min-height: 100%;
+    width: 100%;
   }
   body {
     @apply bg-brand-background text-slate-800 font-sans antialiased;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 @layer components {
@@ -291,4 +294,72 @@ html.theme-dark .rounded-lg.border,
 html.theme-dark .rounded-xl.border,
 html.theme-dark .border {
   border-color: #334155;
+}
+
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.app-header {
+  padding-top: env(safe-area-inset-top);
+  min-height: calc(4rem + env(safe-area-inset-top));
+}
+
+.app-main {
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-sidebar {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.data-table {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+@media (max-width: 640px) {
+  .card {
+    border-radius: 0.75rem;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    min-height: 2.5rem;
+  }
+
+  .fixed.inset-0.z-50.overflow-y-auto > .flex {
+    align-items: flex-start;
+    min-height: 100dvh;
+    padding: calc(0.75rem + env(safe-area-inset-top)) 0.75rem
+      calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .fixed.inset-0.z-50.overflow-y-auto .relative.inline-block {
+    max-height: calc(100dvh - 1.5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow-y: auto;
+    border-radius: 1rem;
+    padding: 1rem;
+  }
+
+  .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1rem;
+  }
+
+  h2.text-2xl {
+    font-size: 1.375rem;
+    line-height: 1.75rem;
+  }
+
+  .data-table {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+  }
 }

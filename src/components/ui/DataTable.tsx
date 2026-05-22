@@ -37,7 +37,7 @@ export function DataTable<T>({
   }
   if (data.length === 0) {
     return (
-      <div className="w-full py-16 flex flex-col items-center justify-center bg-white rounded-xl border border-slate-200 text-slate-500">
+      <div className="w-full px-4 py-16 flex flex-col items-center justify-center bg-white rounded-xl border border-slate-200 text-slate-500 text-center">
         <InboxIcon className="w-12 h-12 mb-4 text-slate-300" />
         <p className="text-lg font-medium text-slate-900 mb-1">
           No results found
@@ -47,14 +47,14 @@ export function DataTable<T>({
 
   }
   return (
-    <div className="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
-      <table className="w-full text-left border-collapse">
+    <div className="data-table overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-sm">
+      <table className="min-w-[680px] w-full text-left border-collapse">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-200">
             {columns.map((col, idx) =>
             <th
               key={idx}
-              className={`px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider ${col.sortable ? 'cursor-pointer hover:bg-slate-100' : ''} ${col.className || ''}`}
+              className={`px-4 sm:px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider ${col.sortable ? 'cursor-pointer hover:bg-slate-100' : ''} ${col.className || ''}`}
               onClick={() =>
               col.sortable && col.sortKey && onSort && onSort(col.sortKey)
               }>
@@ -87,7 +87,7 @@ export function DataTable<T>({
               {columns.map((col, colIndex) =>
             <td
               key={colIndex}
-              className={`px-6 py-4 whitespace-nowrap text-sm text-slate-700 ${col.className || ''}`}>
+              className={`px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-slate-700 ${col.className || ''}`}>
               
                   {typeof col.accessor === 'function' ?
               col.accessor(row) :
