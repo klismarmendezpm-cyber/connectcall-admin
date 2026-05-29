@@ -35,7 +35,8 @@ interface Message {
 }
 export const Inbox = () => {
   const { user, hasPermission } = useAuth();
-  const canReply = hasPermission(['admin', 'manager']);
+  const canReply = hasPermission(['admin']);
+  const canCompose = user?.role_name !== 'manager';
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -308,12 +309,14 @@ export const Inbox = () => {
             Manage access requests and messages
           </p>
         </div>
+        {canCompose &&
         <button
           onClick={() => setIsComposeOpen(true)}
           className="btn-primary flex items-center">
           <Plus className="w-4 h-4 mr-2" />
           New Message
         </button>
+        }
       </div>
 
       <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col md:flex-row">
@@ -607,7 +610,7 @@ export const Inbox = () => {
         </div>
       </div>
 
-      {isComposeOpen &&
+      {isComposeOpen && canCompose &&
       <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
             <div

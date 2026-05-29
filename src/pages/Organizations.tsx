@@ -6,6 +6,7 @@ import { DataTable, Column } from '../components/ui/DataTable';
 import { SearchInput } from '../components/ui/SearchInput';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { logAudit } from '../lib/auditLogger';
+import { formatOrgName } from '../lib/displayNames';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 interface Organization {
@@ -18,7 +19,7 @@ interface Organization {
 }
 export const Organizations = () => {
   const { user, hasPermission } = useAuth();
-  const canEdit = hasPermission(['admin', 'manager']);
+  const canEdit = hasPermission(['admin']);
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,6 +55,7 @@ export const Organizations = () => {
           );
           return {
           ...org,
+          name: formatOrgName(org.name),
           people_count: peopleCount || 0,
           systems_count: systemsCount || 0
           };
@@ -191,7 +193,7 @@ export const Organizations = () => {
   };
   const filteredOrgs = orgs.filter(
     (org) =>
-    org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    formatOrgName(org.name).toLowerCase().includes(searchQuery.toLowerCase()) ||
     org.notes &&
     org.notes.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -201,7 +203,7 @@ export const Organizations = () => {
     accessor: (row) =>
     <div className="flex items-center">
           <Building2 className="w-4 h-4 text-slate-400 mr-2" />
-          <span className="font-medium text-slate-900">{row.name}</span>
+          <span className="font-medium text-slate-900">{formatOrgName(row.name)}</span>
         </div>,
 
     sortable: true,

@@ -88,7 +88,7 @@ export function App() {
             <Route
               path="/audit-log"
               element={
-                <ProtectedRoute allowedRoles={['admin', 'manager']}>
+                <ProtectedRoute allowedRoles={['admin']}>
                   <AuditLog />
                 </ProtectedRoute>
               }

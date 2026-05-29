@@ -17,6 +17,7 @@ import { FilterSelect } from '../components/ui/FilterSelect';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { logAudit } from '../lib/auditLogger';
+import { formatOrgName } from '../lib/displayNames';
 import { toast } from 'sonner';
 interface Account {
   account_id: number;
@@ -48,7 +49,7 @@ interface Account {
 }
 export const Accounts = () => {
   const { user, hasPermission } = useAuth();
-  const canEdit = hasPermission(['admin', 'manager']);
+  const canEdit = hasPermission(['admin']);
   const isReadonly = user?.role_name === 'readonly';
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [orgs, setOrgs] = useState<
@@ -160,9 +161,9 @@ export const Accounts = () => {
         mappedSystems
       );
       setOrgs(
-        isReadonly ?
+        (isReadonly ?
         (orgData || []).filter((org) => visibleOrgIds.has(org.id)) :
-        orgData || []
+        orgData || []).map((org) => ({ ...org, name: formatOrgName(org.name) }))
       );
       // Fetch accounts with joins
       let accountsQuery = supabase.
@@ -202,9 +203,20 @@ export const Accounts = () => {
             people: account.people ?
             {
               ...account.people,
+              orgs: account.people.orgs ?
+              { ...account.people.orgs, name: formatOrgName(account.people.orgs.name) } :
+              account.people.orgs,
               assigned_org_ids: assignmentMap.get(account.person_id) || []
             } :
-            account.people
+            account.people,
+            systems: account.systems ?
+            {
+              ...account.systems,
+              orgs: account.systems.orgs ?
+              { ...account.systems.orgs, name: formatOrgName(account.systems.orgs.name) } :
+              account.systems.orgs
+            } :
+            account.systems
           })) as Account[]
         );
       } else {
@@ -429,7 +441,7 @@ export const Accounts = () => {
         <td>${escapeExcelValue(account.username || '')}</td>
         <td>${escapeExcelValue(account.people?.full_name || 'Unassigned')}</td>
         <td>${escapeExcelValue(account.systems?.system_name || 'Unknown')}</td>
-        <td>${escapeExcelValue(account.systems?.orgs?.name || account.people?.orgs?.name || 'Unknown')}</td>
+        <td>${escapeExcelValue(formatOrgName(account.systems?.orgs?.name || account.people?.orgs?.name) || 'Unknown')}</td>
         <td>${escapeExcelValue(account.ext_number || '')}</td>
         <td>${escapeExcelValue(account.phone_line || '')}</td>
         <td class="status status-${escapeExcelValue(account.status)}">${escapeExcelValue(account.status.toUpperCase())}</td>
@@ -666,7 +678,7 @@ export const Accounts = () => {
             {row.systems?.system_name || 'Unknown'}
           </div>
           <div className="text-xs text-slate-500">
-            {row.systems?.orgs?.name || 'Unknown Org'}
+            {formatOrgName(row.systems?.orgs?.name) || 'Unknown Org'}
           </div>
         </div>
 

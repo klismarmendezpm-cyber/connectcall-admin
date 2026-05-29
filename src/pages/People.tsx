@@ -7,6 +7,7 @@ import { SearchInput } from '../components/ui/SearchInput';
 import { FilterSelect } from '../components/ui/FilterSelect';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { logAudit } from '../lib/auditLogger';
+import { formatOrgName } from '../lib/displayNames';
 import { toast } from 'sonner';
 interface Person {
   id: number;
@@ -26,7 +27,7 @@ interface Person {
 }
 export const People = () => {
   const { user, hasPermission } = useAuth();
-  const canEdit = hasPermission(['admin', 'manager']);
+  const canEdit = hasPermission(['admin']);
   const [people, setPeople] = useState<Person[]>([]);
   const [orgs, setOrgs] = useState<
     {
@@ -55,7 +56,9 @@ export const People = () => {
       from('orgs').
       select('id:org_id, name').
       order('name');
-      if (orgData) setOrgs(orgData);
+      if (orgData) {
+        setOrgs(orgData.map((org) => ({ ...org, name: formatOrgName(org.name) })));
+      }
       // Fetch people with org join
       const { data: peopleData, error } = await supabase.
       from('people').
@@ -96,7 +99,7 @@ export const People = () => {
           names: []
         };
         current.ids.push(Number(assignment.org_id));
-        if (assignment.orgs?.name) current.names.push(assignment.orgs.name);
+        if (assignment.orgs?.name) current.names.push(formatOrgName(assignment.orgs.name));
         assignmentMap.set(assignment.person_id, current);
       });
       setPeople(
@@ -109,6 +112,7 @@ export const People = () => {
           return {
             ...person,
             is_active: person.is_active === true || person.is_active === 1,
+            orgs: person.orgs ? { ...person.orgs, name: formatOrgName(person.orgs.name) } : person.orgs,
             assigned_org_ids: assignments.ids,
             assigned_org_names: assignments.names
           };
@@ -339,7 +343,7 @@ export const People = () => {
     accessor: (row) =>
     <div>
         <div className="font-medium text-slate-900">
-          {row.orgs?.name || 'Unknown'}
+          {formatOrgName(row.orgs?.name) || 'Unknown'}
         </div>
         {(row.assigned_org_names || []).length > 0 &&
       <div className="mt-1 flex flex-wrap gap-1">

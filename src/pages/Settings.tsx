@@ -218,6 +218,7 @@ export const Settings = () => {
                     <select
                     className="input-field mt-1"
                     value={settings.theme}
+                    disabled={!isAdmin}
                     onChange={(e) => {
                     const nextSettings = {
                       ...settings,
@@ -249,6 +250,7 @@ export const Settings = () => {
                     <select
                     className="input-field mt-1"
                     value={settings.sessionTimeout}
+                    disabled={!isAdmin}
                     onChange={(e) =>
                     setSettings({
                       ...settings,
@@ -270,6 +272,7 @@ export const Settings = () => {
                     <select
                     className="input-field mt-1"
                     value={settings.auditRetention}
+                    disabled={!isAdmin}
                     onChange={(e) =>
                     setSettings({
                       ...settings,
@@ -289,6 +292,7 @@ export const Settings = () => {
                     id="requireMfa"
                     type="checkbox"
                     checked={settings.requireMfa}
+                    disabled={!isAdmin}
                     onChange={(e) =>
                     setSettings({
                       ...settings,
@@ -314,6 +318,7 @@ export const Settings = () => {
                     type="text"
                     inputMode="numeric"
                     value={settings.mfaCode}
+                    disabled={!isAdmin}
                     onChange={(e) =>
                     setSettings({
                       ...settings,
@@ -344,6 +349,7 @@ export const Settings = () => {
                     id="emailNotif"
                     type="checkbox"
                     checked={settings.emailNotifications}
+                    disabled={!isAdmin}
                     onChange={(e) =>
                     setSettings({
                       ...settings,
@@ -365,6 +371,7 @@ export const Settings = () => {
                     id="alertNotif"
                     type="checkbox"
                     checked={settings.failedLoginAlerts}
+                    disabled={!isAdmin}
                     onChange={(e) =>
                     setSettings({
                       ...settings,
@@ -432,7 +439,7 @@ export const Settings = () => {
               </div>
             }
 
-            {activeTab !== 'vault' &&
+            {activeTab !== 'vault' && isAdmin &&
             <div className="mt-8 pt-5 border-t border-slate-200 flex justify-end">
                 <button
                 onClick={handleSaveSettings}

@@ -48,11 +48,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           </svg>
         </div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">
-          Access Denied
+          Acceso denegado
         </h2>
         <p className="text-slate-500 max-w-md">
-          You don't have permission to view this page. Please contact your
-          administrator if you believe this is an error.
+          No tienes permiso para ver esta pagina. Contacta al administrador si
+          crees que esto es un error.
         </p>
       </div>);
 

@@ -7,6 +7,7 @@ import { SearchInput } from '../components/ui/SearchInput';
 import { FilterSelect } from '../components/ui/FilterSelect';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { logAudit } from '../lib/auditLogger';
+import { formatOrgName } from '../lib/displayNames';
 import { toast } from 'sonner';
 interface System {
   id: number;
@@ -22,7 +23,7 @@ interface System {
 }
 export const Systems = () => {
   const { user, hasPermission } = useAuth();
-  const canEdit = hasPermission(['admin', 'manager']);
+  const canEdit = hasPermission(['admin']);
   const [systems, setSystems] = useState<System[]>([]);
   const [orgs, setOrgs] = useState<
     {
@@ -51,7 +52,9 @@ export const Systems = () => {
       from('orgs').
       select('id:org_id, name').
       order('name');
-      if (orgData) setOrgs(orgData);
+      if (orgData) {
+        setOrgs(orgData.map((org) => ({ ...org, name: formatOrgName(org.name) })));
+      }
       // Fetch systems with org join
       const { data: systemsData, error } = await supabase.
       from('systems').
@@ -69,7 +72,12 @@ export const Systems = () => {
       ).
       order('system_name');
       if (error) throw error;
-      setSystems(systemsData || []);
+      setSystems(
+        (systemsData || []).map((system: any) => ({
+          ...system,
+          orgs: system.orgs ? { ...system.orgs, name: formatOrgName(system.orgs.name) } : system.orgs
+        }))
+      );
     } catch (error) {
       console.error('Error fetching systems:', error);
       toast.error('Failed to load systems');
@@ -246,7 +254,7 @@ export const Systems = () => {
   },
   {
     header: 'Organization',
-    accessor: (row) => row.orgs?.name || 'Unknown'
+    accessor: (row) => formatOrgName(row.orgs?.name) || 'Unknown'
   },
   {
     header: 'Vendor',
