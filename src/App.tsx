@@ -1,4 +1,5 @@
 import React from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import {
   BrowserRouter as Router,
   Routes,
@@ -121,6 +122,7 @@ export function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <Analytics />
       </Router>
     </AuthProvider>
   )
