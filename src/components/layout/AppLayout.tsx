@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 export const AppLayout = () => {
   const { user, isLoading } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-brand-background">
@@ -29,9 +30,12 @@ export const AppLayout = () => {
 
       {/* Mobile Sidebar Wrapper */}
       <div
-        className={`mobile-sidebar fixed inset-y-0 left-0 z-50 h-full w-72 max-w-[85vw] transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-200 ease-in-out md:relative md:z-auto md:w-64 md:max-w-none md:translate-x-0`}>
+        className={`mobile-sidebar fixed inset-y-0 left-0 z-50 h-full w-72 max-w-[85vw] transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} transition-[transform,width] duration-200 ease-in-out md:relative md:z-auto ${sidebarCollapsed ? 'md:w-20' : 'md:w-64'} md:max-w-none md:translate-x-0`}>
         
-        <Sidebar onNavigate={() => setMobileMenuOpen(false)} />
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)}
+          onNavigate={() => setMobileMenuOpen(false)} />
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
