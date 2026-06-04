@@ -67,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     path: '/users',
     label: 'Users & Roles',
     icon: Shield,
-    roles: ['admin']
+    roles: ['admin', 'manager']
   },
   {
     path: '/audit-log',
@@ -79,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     path: '/login-attempts',
     label: 'Login Attempts',
     icon: ShieldAlert,
-    roles: ['admin']
+    roles: ['admin', 'manager']
   },
   {
     path: '/settings',

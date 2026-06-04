@@ -27,7 +27,7 @@ interface Person {
 }
 export const People = () => {
   const { user, hasPermission } = useAuth();
-  const canEdit = hasPermission(['admin']);
+  const canEdit = hasPermission(['admin', 'manager']);
   const [people, setPeople] = useState<Person[]>([]);
   const [orgs, setOrgs] = useState<
     {

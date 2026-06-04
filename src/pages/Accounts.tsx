@@ -49,7 +49,7 @@ interface Account {
 }
 export const Accounts = () => {
   const { user, hasPermission } = useAuth();
-  const canEdit = hasPermission(['admin']);
+  const canEdit = hasPermission(['admin', 'manager']);
   const isReadonly = user?.role_name === 'readonly';
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [orgs, setOrgs] = useState<

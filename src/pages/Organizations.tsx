@@ -20,6 +20,7 @@ interface Organization {
 export const Organizations = () => {
   const { user, hasPermission } = useAuth();
   const canEdit = hasPermission(['admin']);
+  const canDelete = hasPermission(['admin']);
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -254,6 +255,7 @@ export const Organizations = () => {
           
             <Edit2 className="w-4 h-4" />
           </button>
+          {canDelete &&
           <button
           onClick={(e) => {
             e.stopPropagation();
@@ -265,6 +267,7 @@ export const Organizations = () => {
           
             <Trash2 className="w-4 h-4" />
           </button>
+          }
         </div>,
 
       className: 'text-right'

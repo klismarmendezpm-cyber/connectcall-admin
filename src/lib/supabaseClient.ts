@@ -41,9 +41,8 @@ CREATE POLICY "Allow read access to all authenticated users" ON auth_roles FOR S
 
 -- auth_users
 CREATE POLICY "Allow read access to all authenticated users" ON auth_users FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow update to admins only" ON auth_users FOR UPDATE TO authenticated USING (
-  EXISTS (SELECT 1 FROM auth_users au JOIN auth_roles ar ON au.role_id = ar.id WHERE au.id = auth.uid() AND ar.name = 'admin')
-);
+-- See scripts/admin-user-permissions.sql for the non-recursive admin policies
+-- that allow INSERT and UPDATE operations.
 
 -- orgs, people, systems, accounts
 CREATE POLICY "Allow read access to all authenticated users" ON orgs FOR SELECT TO authenticated USING (true);

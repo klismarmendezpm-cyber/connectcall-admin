@@ -6,7 +6,6 @@ import { DataTable, Column } from '../components/ui/DataTable';
 import { SearchInput } from '../components/ui/SearchInput';
 import { FilterSelect } from '../components/ui/FilterSelect';
 import { StatusBadge } from '../components/ui/StatusBadge';
-import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { logAudit } from '../lib/auditLogger';
 import { hashPassword } from '../lib/edgeFunctions';
 import { toast } from 'sonner';
@@ -25,7 +24,8 @@ interface AuthUser {
   };
 }
 export const Users = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
+  const isAdmin = hasPermission(['admin']);
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [roles, setRoles] = useState<
     {
@@ -99,6 +99,10 @@ export const Users = () => {
   }, [searchQuery, roleFilter, statusFilter]);
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin) {
+      toast.error('Only administrators can create or update users');
+      return;
+    }
     if (
     !currentUser.username ||
     !currentUser.email ||
@@ -181,46 +185,15 @@ export const Users = () => {
     } catch (error) {
       console.error('Error saving user:', error);
       toast.error('Failed to save user');
-      // Prototype fallback
-      const roleName =
-      roles.find((r) => r.id === Number(currentUser.role_id))?.name ||
-      'readonly';
-      if (!currentUser.id) {
-        setUsers([
-        ...users,
-        {
-          ...currentUser,
-          id: Date.now(),
-          created_at: new Date().toISOString(),
-          last_login_at: null,
-          auth_roles: {
-            name: roleName
-          }
-        } as AuthUser]
-        );
-      } else {
-        setUsers(
-          users.map((u) =>
-          u.id === currentUser.id ?
-          {
-            ...u,
-            ...currentUser,
-            auth_roles: {
-              name: roleName
-            }
-          } as AuthUser :
-          u
-          )
-        );
-      }
-      setIsModalOpen(false);
-      setNewPassword('');
-      toast.success('User saved (Prototype mode)');
     } finally {
       setIsSubmitting(false);
     }
   };
   const toggleStatus = async (targetUser: AuthUser) => {
+    if (!isAdmin) {
+      toast.error('Only administrators can update users');
+      return;
+    }
     // Prevent disabling self
     if (targetUser.username === user?.username) {
       toast.error('You cannot disable your own account');
@@ -249,21 +222,15 @@ export const Users = () => {
       toast.success(`User ${newStatus ? 'enabled' : 'disabled'} successfully`);
       fetchData();
     } catch (error) {
-      // Prototype fallback
-      setUsers(
-        users.map((u) =>
-        u.id === targetUser.id ?
-        {
-          ...u,
-          is_active: !u.is_active
-        } :
-        u
-        )
-      );
-      toast.success(`Status updated (Prototype mode)`);
+      console.error('Error updating user status:', error);
+      toast.error('Failed to update user status');
     }
   };
   const handleResetPassword = async () => {
+    if (!isAdmin) {
+      toast.error('Only administrators can reset passwords');
+      return;
+    }
     if (!userToReset || !resetPasswordValue) return;
     try {
       const { hash } = await hashPassword(resetPasswordValue);
@@ -287,9 +254,8 @@ export const Users = () => {
       });
       toast.success(`Password reset for ${userToReset.username}`);
     } catch (error) {
-      toast.success(
-        `Password reset for ${userToReset.username} (Prototype mode)`
-      );
+      console.error('Error resetting password:', error);
+      toast.error(`Failed to reset password for ${userToReset.username}`);
     } finally {
       setResetConfirmOpen(false);
       setUserToReset(null);
@@ -421,6 +387,7 @@ export const Users = () => {
           </p>
         </div>
         <button
+          disabled={!isAdmin}
           onClick={() => {
             setCurrentUser({
               is_active: true
@@ -428,7 +395,7 @@ export const Users = () => {
             setNewPassword('');
             setIsModalOpen(true);
           }}
-          className="btn-primary flex items-center">
+          className="btn-primary flex items-center disabled:opacity-50 disabled:cursor-not-allowed">
           
           <Plus className="w-4 h-4 mr-2" />
           Add User

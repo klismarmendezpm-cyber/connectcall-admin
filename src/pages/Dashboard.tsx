@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Users,
   Server,
@@ -169,6 +169,19 @@ export const Dashboard = () => {
     };
     fetchDashboardData();
   }, [isReadonly]);
+
+  const userName = user?.full_name?.trim().split(/\s+/)[0] || user?.username || 'Usuario';
+  const currentHour = new Date().getHours();
+  const greetingPrefix =
+    currentHour < 12 ? 'Buenos días' :
+    currentHour < 18 ? 'Buenas tardes' :
+    'Buenas noches';
+  const formattedDate = new Intl.DateTimeFormat('es-HN', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  }).format(new Date());
+
   const statCards = [
   {
     title: 'Total People',
@@ -223,9 +236,14 @@ export const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">Dashboard</h2>
+        <p className="text-sm font-medium text-slate-500 capitalize">
+          {formattedDate}
+        </p>
+        <h2 className="text-2xl font-bold text-slate-900 mt-1">
+          {greetingPrefix}, <span className="text-brand-primary">{userName}</span>
+        </h2>
         <p className="text-slate-500 mt-1">
-          Overview of your credentials vault
+          Este es el resumen de tu bóveda de credenciales.
         </p>
       </div>
 

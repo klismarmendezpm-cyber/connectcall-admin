@@ -24,6 +24,7 @@ interface System {
 export const Systems = () => {
   const { user, hasPermission } = useAuth();
   const canEdit = hasPermission(['admin']);
+  const canDelete = hasPermission(['admin']);
   const [systems, setSystems] = useState<System[]>([]);
   const [orgs, setOrgs] = useState<
     {
@@ -294,6 +295,7 @@ export const Systems = () => {
           
             <Edit2 className="w-4 h-4" />
           </button>
+          {canDelete &&
           <button
           onClick={(e) => {
             e.stopPropagation();
@@ -305,6 +307,7 @@ export const Systems = () => {
           
             <Trash2 className="w-4 h-4" />
           </button>
+          }
         </div>,
 
       className: 'text-right'
