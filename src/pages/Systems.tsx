@@ -25,6 +25,13 @@ export const Systems = () => {
   const { user, hasPermission } = useAuth();
   const canEdit = hasPermission(['admin']);
   const canDelete = hasPermission(['admin']);
+  const scopedOrgIds = user?.assigned_org_ids?.length ?
+  user.assigned_org_ids :
+  user?.role_name === 'admin' ?
+  null :
+  user?.org_id ?
+  [user.org_id] :
+  [];
   const [systems, setSystems] = useState<System[]>([]);
   const [orgs, setOrgs] = useState<
     {
@@ -53,9 +60,11 @@ export const Systems = () => {
       from('orgs').
       select('id:org_id, name').
       order('name');
-      if (orgData) {
-        setOrgs(orgData.map((org) => ({ ...org, name: formatOrgName(org.name) })));
-      }
+      setOrgs(
+        (orgData || []).
+        filter((org) => !scopedOrgIds || scopedOrgIds.includes(Number(org.id))).
+        map((org) => ({ ...org, name: formatOrgName(org.name) }))
+      );
       // Fetch systems with org join
       const { data: systemsData, error } = await supabase.
       from('systems').
@@ -74,7 +83,9 @@ export const Systems = () => {
       order('system_name');
       if (error) throw error;
       setSystems(
-        (systemsData || []).map((system: any) => ({
+        (systemsData || []).
+        filter((system) => !scopedOrgIds || scopedOrgIds.includes(Number(system.org_id))).
+        map((system: any) => ({
           ...system,
           orgs: system.orgs ? { ...system.orgs, name: formatOrgName(system.orgs.name) } : system.orgs
         }))

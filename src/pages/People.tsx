@@ -28,6 +28,13 @@ interface Person {
 export const People = () => {
   const { user, hasPermission } = useAuth();
   const canEdit = hasPermission(['admin', 'manager']);
+  const scopedOrgIds = user?.assigned_org_ids?.length ?
+  user.assigned_org_ids :
+  user?.role_name === 'admin' ?
+  null :
+  user?.org_id ?
+  [user.org_id] :
+  [];
   const [people, setPeople] = useState<Person[]>([]);
   const [orgs, setOrgs] = useState<
     {
@@ -56,9 +63,11 @@ export const People = () => {
       from('orgs').
       select('id:org_id, name').
       order('name');
-      if (orgData) {
-        setOrgs(orgData.map((org) => ({ ...org, name: formatOrgName(org.name) })));
-      }
+      setOrgs(
+        (orgData || []).
+        filter((org) => !scopedOrgIds || scopedOrgIds.includes(Number(org.id))).
+        map((org) => ({ ...org, name: formatOrgName(org.name) }))
+      );
       // Fetch people with org join
       const { data: peopleData, error } = await supabase.
       from('people').
@@ -102,8 +111,7 @@ export const People = () => {
         if (assignment.orgs?.name) current.names.push(formatOrgName(assignment.orgs.name));
         assignmentMap.set(assignment.person_id, current);
       });
-      setPeople(
-        (peopleData || []).map((person: any) => {
+      const mappedPeople = (peopleData || []).map((person: any) => {
           const assignments =
           assignmentMap.get(person.id) || {
             ids: [],
@@ -116,7 +124,14 @@ export const People = () => {
             assigned_org_ids: assignments.ids,
             assigned_org_names: assignments.names
           };
-        })
+        });
+      setPeople(
+        mappedPeople.filter(
+          (person) =>
+          !scopedOrgIds ||
+          scopedOrgIds.includes(Number(person.org_id)) ||
+          person.assigned_org_ids.some((orgId) => scopedOrgIds.includes(orgId))
+        )
       );
     } catch (error) {
       console.error('Error fetching people:', error);
@@ -162,6 +177,10 @@ export const People = () => {
   };
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (scopedOrgIds && !scopedOrgIds.includes(Number(currentPerson.org_id))) {
+      toast.error('You can only manage people from your assigned organizations');
+      return;
+    }
     if (!currentPerson.full_name || !currentPerson.org_id) return;
     setIsSubmitting(true);
     try {

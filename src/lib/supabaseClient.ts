@@ -46,10 +46,10 @@ CREATE POLICY "Allow read access to all authenticated users" ON auth_users FOR S
 
 -- orgs, people, systems, accounts
 CREATE POLICY "Allow read access to all authenticated users" ON orgs FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Allow insert/update/delete to admins and managers" ON orgs FOR ALL TO authenticated USING (
-  EXISTS (SELECT 1 FROM auth_users au JOIN auth_roles ar ON au.role_id = ar.id WHERE au.id = auth.uid() AND ar.name IN ('admin', 'manager'))
-);
--- (Similar policies apply to people, systems, and accounts tables)
+-- See scripts/manager-operational-permissions.sql. Managers can write to
+-- people and accounts; organizations and systems are writable by admins only.
+-- See scripts/user-organization-scope.sql to assign auth_users.org_id and
+-- scope people/accounts access for non-admin users.
 
 -- account_kv
 CREATE POLICY "Allow read access to all authenticated users" ON account_kv FOR SELECT TO authenticated USING (true);

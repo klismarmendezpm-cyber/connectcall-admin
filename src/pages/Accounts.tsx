@@ -51,6 +51,13 @@ export const Accounts = () => {
   const { user, hasPermission } = useAuth();
   const canEdit = hasPermission(['admin', 'manager']);
   const isReadonly = user?.role_name === 'readonly';
+  const scopedOrgIds = user?.assigned_org_ids?.length ?
+  user.assigned_org_ids :
+  user?.role_name === 'admin' ?
+  null :
+  user?.org_id ?
+  [user.org_id] :
+  [];
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [orgs, setOrgs] = useState<
     {
@@ -63,7 +70,6 @@ export const Accounts = () => {
       id: number;
       name: string;
       org_id: number;
-      assigned_org_ids?: number[];
     }[]>(
     []);
   const [people, setPeople] = useState<
@@ -71,6 +77,7 @@ export const Accounts = () => {
       id: number;
       name: string;
       org_id: number;
+      assigned_org_ids?: number[];
     }[]>(
     []);
   const [isLoading, setIsLoading] = useState(true);
@@ -129,7 +136,14 @@ export const Accounts = () => {
           org_id: p.org_id,
           assigned_org_ids: assignmentMap.get(p.id) || []
         }));
-      const readonlyPerson = isReadonly ?
+      const scopedPeople = scopedOrgIds ?
+      mappedPeople.filter(
+        (person) =>
+        scopedOrgIds.includes(Number(person.org_id)) ||
+        person.assigned_org_ids.some((orgId) => scopedOrgIds.includes(orgId))
+      ) :
+      mappedPeople;
+      const readonlyPerson = isReadonly && !scopedOrgIds ?
       mappedPeople.find(
         (person) =>
         normalizeText(person.name) === normalizeText(user?.full_name) ||
@@ -137,7 +151,9 @@ export const Accounts = () => {
       ) :
       null;
 
-      const visiblePeople = isReadonly && readonlyPerson ?
+      const visiblePeople = scopedOrgIds ?
+      scopedPeople :
+      isReadonly && readonlyPerson ?
       [readonlyPerson] :
       isReadonly ?
       [] :
@@ -156,13 +172,21 @@ export const Accounts = () => {
 
       setPeople(visiblePeople);
       setSystems(
-        isReadonly ?
-        mappedSystems.filter((system) => visibleOrgIds.has(system.org_id)) :
+        scopedOrgIds || isReadonly ?
+        mappedSystems.filter((system) =>
+          scopedOrgIds ?
+          scopedOrgIds.includes(Number(system.org_id)) :
+          visibleOrgIds.has(system.org_id)
+        ) :
         mappedSystems
       );
       setOrgs(
-        (isReadonly ?
-        (orgData || []).filter((org) => visibleOrgIds.has(org.id)) :
+        (scopedOrgIds || isReadonly ?
+        (orgData || []).filter((org) =>
+          scopedOrgIds ?
+          scopedOrgIds.includes(Number(org.id)) :
+          visibleOrgIds.has(org.id)
+        ) :
         orgData || []).map((org) => ({ ...org, name: formatOrgName(org.name) }))
       );
       // Fetch accounts with joins
@@ -186,7 +210,7 @@ export const Accounts = () => {
         `
       ).
       order('display_label');
-      if (isReadonly) {
+      if (isReadonly && !scopedOrgIds) {
         if (!readonlyPerson) {
           setAccounts([]);
           return;
@@ -196,28 +220,41 @@ export const Accounts = () => {
       const { data: accountsData, error } = await accountsQuery;
       if (error) throw error;
       if (accountsData && accountsData.length > 0) {
+        const mappedAccounts = accountsData.map((account: any) => ({
+          ...account,
+          is_shared: account.is_shared === true || account.is_shared === 1,
+          people: account.people ?
+          {
+            ...account.people,
+            orgs: account.people.orgs ?
+            { ...account.people.orgs, name: formatOrgName(account.people.orgs.name) } :
+            account.people.orgs,
+            assigned_org_ids: assignmentMap.get(account.person_id) || []
+          } :
+          account.people,
+          systems: account.systems ?
+          {
+            ...account.systems,
+            orgs: account.systems.orgs ?
+            { ...account.systems.orgs, name: formatOrgName(account.systems.orgs.name) } :
+            account.systems.orgs
+          } :
+          account.systems
+        })) as Account[];
         setAccounts(
-          accountsData.map((account: any) => ({
-            ...account,
-            is_shared: account.is_shared === true || account.is_shared === 1,
-            people: account.people ?
-            {
-              ...account.people,
-              orgs: account.people.orgs ?
-              { ...account.people.orgs, name: formatOrgName(account.people.orgs.name) } :
-              account.people.orgs,
-              assigned_org_ids: assignmentMap.get(account.person_id) || []
-            } :
-            account.people,
-            systems: account.systems ?
-            {
-              ...account.systems,
-              orgs: account.systems.orgs ?
-              { ...account.systems.orgs, name: formatOrgName(account.systems.orgs.name) } :
-              account.systems.orgs
-            } :
-            account.systems
-          })) as Account[]
+          mappedAccounts.filter(
+            (account) =>
+            !scopedOrgIds ||
+            (
+              (
+                scopedOrgIds.includes(Number(account.people?.org_id)) ||
+                (account.people?.assigned_org_ids || []).some((orgId) =>
+                  scopedOrgIds.includes(orgId)
+                )
+              ) &&
+              scopedOrgIds.includes(Number(account.systems?.org_id))
+            )
+          )
         );
       } else {
         setAccounts([]);
@@ -231,7 +268,7 @@ export const Accounts = () => {
   };
   useEffect(() => {
     fetchData();
-  }, [user?.id, user?.role_name]);
+  }, [user?.id, user?.role_name, user?.org_id, user?.assigned_org_ids?.join(',')]);
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, orgFilter, systemFilter, statusFilter]);
@@ -242,6 +279,16 @@ export const Accounts = () => {
     !currentAccount.system_id ||
     !currentAccount.username)
     return;
+    if (
+    scopedOrgIds &&
+    (
+    !people.some((person) => person.id === Number(currentAccount.person_id)) ||
+    !systems.some((system) => system.id === Number(currentAccount.system_id))
+    ))
+    {
+      toast.error('You can only manage accounts from your assigned organizations');
+      return;
+    }
 
     setIsSubmitting(true);
     try {

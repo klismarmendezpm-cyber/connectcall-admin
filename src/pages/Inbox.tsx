@@ -2,13 +2,12 @@ import React, { useEffect, useState } from 'react';
 import {
   Inbox as InboxIcon,
   Mail,
-  MailOpen,
-  CheckCircle,
   Clock,
   CornerUpLeft,
   Paperclip,
   Plus,
-  Send } from
+  Send,
+  Trash2 } from
 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
@@ -35,8 +34,9 @@ interface Message {
 }
 export const Inbox = () => {
   const { user, hasPermission } = useAuth();
-  const canReply = hasPermission(['admin']);
-  const canCompose = user?.role_name !== 'manager';
+  const canReply = hasPermission(['admin', 'manager']);
+  const canCompose = hasPermission(['admin', 'manager', 'readonly']);
+  const canDelete = hasPermission(['admin', 'manager']);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -50,6 +50,24 @@ export const Inbox = () => {
   const [composeMessage, setComposeMessage] = useState('');
   const [composeAttachments, setComposeAttachments] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const getThreadRootId = (msg: Message) => msg.parent_message_id || msg.id;
+  const isThreadMessage = (msg: Message, rootId: number) =>
+  msg.id === rootId || msg.parent_message_id === rootId;
+  const updateThreadMessages = (
+  rootId: number,
+  changes: Partial<Message>
+  ) => {
+    setMessages((currentMessages) =>
+    currentMessages.map((message) =>
+    isThreadMessage(message, rootId) ? { ...message, ...changes } : message
+    )
+    );
+    setSelectedMessage((currentMessage) =>
+    currentMessage && isThreadMessage(currentMessage, rootId) ?
+    { ...currentMessage, ...changes } :
+    currentMessage
+    );
+  };
   const fetchMessages = async () => {
     setIsLoading(true);
     try {
@@ -123,7 +141,7 @@ export const Inbox = () => {
         reply_text: replyText,
         replied_by: user?.username || 'system',
         replied_at: new Date().toISOString(),
-        is_closed: 1 // Auto-close on reply for this workflow
+        is_read: 1
       };
       const { error } = await supabase.
       from('inbox_messages').
@@ -136,14 +154,15 @@ export const Inbox = () => {
         entity: 'inbox_messages',
         entity_id: selectedMessage.id,
         metadata: {
-          action: 'replied_and_closed'
+          action: 'replied'
         }
       });
-      toast.success('Reply sent and message closed');
+      toast.success('Reply sent');
       // Update local state
       const updatedMsg = {
         ...selectedMessage,
-        ...updateData
+        ...updateData,
+        is_read: true
       };
       setMessages(
         messages.map((m) => m.id === selectedMessage.id ? updatedMsg : m)
@@ -156,7 +175,7 @@ export const Inbox = () => {
         reply_text: replyText,
         replied_by: user?.username || 'system',
         replied_at: new Date().toISOString(),
-        is_closed: true
+        is_read: true
       };
       const updatedMsg = {
         ...selectedMessage,
@@ -241,43 +260,62 @@ export const Inbox = () => {
   };
   const toggleStatus = async (close: boolean) => {
     if (!selectedMessage) return;
+    const rootId = getThreadRootId(selectedMessage);
     try {
       const { error } = await supabase.
       from('inbox_messages').
       update({
         is_closed: close ? 1 : 0
       }).
-      eq('message_id', selectedMessage.id);
+      or(`message_id.eq.${rootId},parent_message_id.eq.${rootId}`);
       if (error) throw error;
       await logAudit({
         actor: user?.username || 'unknown',
         action: 'update',
         entity: 'inbox_messages',
-        entity_id: selectedMessage.id,
+        entity_id: rootId,
         metadata: {
           action: close ? 'closed' : 'reopened'
         }
       });
-      toast.success(`Message ${close ? 'closed' : 'reopened'}`);
-      const updatedMsg = {
-        ...selectedMessage,
-        is_closed: close
-      };
-      setMessages(
-        messages.map((m) => m.id === selectedMessage.id ? updatedMsg : m)
-      );
-      setSelectedMessage(updatedMsg);
+      toast.success(`Chat ${close ? 'closed' : 'reopened'}`);
+      updateThreadMessages(rootId, { is_closed: close });
     } catch (error) {
       // Prototype fallback
-      const updatedMsg = {
-        ...selectedMessage,
-        is_closed: close
-      };
-      setMessages(
-        messages.map((m) => m.id === selectedMessage.id ? updatedMsg : m)
-      );
-      setSelectedMessage(updatedMsg);
+      updateThreadMessages(rootId, { is_closed: close });
       toast.success(`Status updated (Prototype mode)`);
+    }
+  };
+  const handleDeleteChat = async () => {
+    if (!selectedMessage || !canDelete) return;
+    const rootId = getThreadRootId(selectedMessage);
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this chat? This action cannot be undone.'
+    );
+    if (!confirmed) return;
+    try {
+      const { error } = await supabase.
+      from('inbox_messages').
+      delete().
+      or(`message_id.eq.${rootId},parent_message_id.eq.${rootId}`);
+      if (error) throw error;
+      await logAudit({
+        actor: user?.username || 'unknown',
+        action: 'delete',
+        entity: 'inbox_messages',
+        entity_id: rootId,
+        metadata: {
+          action: 'chat_deleted'
+        }
+      });
+      setMessages((currentMessages) =>
+      currentMessages.filter((message) => !isThreadMessage(message, rootId))
+      );
+      setSelectedMessage(null);
+      toast.success('Chat deleted');
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      toast.error('Failed to delete chat');
     }
   };
   const filteredMessages = messages.filter((msg) => {
@@ -482,6 +520,15 @@ export const Inbox = () => {
                     className="bg-green-100 text-green-800 border-green-200" />
 
                   }
+                    {canDelete &&
+                  <button
+                    type="button"
+                    onClick={handleDeleteChat}
+                    className="inline-flex items-center rounded-lg border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50">
+                      <Trash2 className="w-3.5 h-3.5 mr-1" />
+                      Delete
+                    </button>
+                  }
                   </div>
                 </div>
                 <div className="flex items-center text-xs text-slate-500">
@@ -564,7 +611,7 @@ export const Inbox = () => {
               {/* Reply Box */}
               {canReply &&
             <div className="p-4 bg-white border-t border-slate-200 flex-shrink-0">
-                  {!selectedMessage.is_closed || selectedMessage.reply_text ?
+                  {!selectedMessage.is_closed ?
               <div className="space-y-3">
                       <textarea
                   value={replyText}
@@ -589,7 +636,7 @@ export const Inbox = () => {
                     disabled={isSubmitting || !replyText.trim()}
                     className="btn-primary py-1.5 px-4 text-sm flex items-center disabled:opacity-50">
                     
-                          {isSubmitting ? 'Sending...' : 'Send Reply & Close'}
+                          {isSubmitting ? 'Sending...' : 'Send Reply'}
                         </button>
                       </div>
                     </div> :
