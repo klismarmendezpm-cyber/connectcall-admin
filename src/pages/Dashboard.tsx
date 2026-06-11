@@ -194,9 +194,9 @@ export const Dashboard = () => {
   const userName = user?.full_name?.trim().split(/\s+/)[0] || user?.username || 'Usuario';
   const currentHour = new Date().getHours();
   const greetingPrefix =
-    currentHour < 12 ? 'Buenos días' :
-    currentHour < 18 ? 'Buenas tardes' :
-    'Buenas noches';
+    currentHour < 12 ? 'Buenos días!' :
+    currentHour < 18 ? 'Buenas tardes!' :
+    'Buenas noches!';
   const formattedDate = new Intl.DateTimeFormat('es-HN', {
     weekday: 'long',
     day: 'numeric',
