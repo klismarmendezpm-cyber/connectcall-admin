@@ -22,6 +22,8 @@ interface AuthUser {
   auth_roles?: {
     name: string;
   };
+  assigned_org_ids?: number[];
+  assigned_org_names?: string[];
 }
 export const Users = () => {
   const { user, hasPermission } = useAuth();
@@ -33,6 +35,7 @@ export const Users = () => {
       name: string;
     }[]>(
     []);
+  const [orgs, setOrgs] = useState<{ id: number; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,6 +63,11 @@ export const Users = () => {
       select('id:role_id, name:role_key').
       order('role_id');
       if (rolesData) setRoles(rolesData);
+      const { data: orgData } = await supabase.
+      from('orgs').
+      select('id:org_id, name').
+      order('name');
+      if (orgData) setOrgs(orgData);
       // Fetch users
       const { data: usersData, error } = await supabase.
       from('auth_users').
@@ -78,9 +86,27 @@ export const Users = () => {
       ).
       order('username');
       if (error) throw error;
+      const { data: assignmentData, error: assignmentError } = await supabase.
+      from('user_org_assignments').
+      select('user_id, org_id, orgs(name)');
+      if (assignmentError) {
+        console.warn('User organization assignments are not available yet:', assignmentError.message);
+      }
+      const assignmentMap = new Map<number, { ids: number[]; names: string[] }>();
+      (assignmentData || []).forEach((assignment: any) => {
+        const current = assignmentMap.get(assignment.user_id) || {
+          ids: [],
+          names: []
+        };
+        current.ids.push(Number(assignment.org_id));
+        if (assignment.orgs?.name) current.names.push(assignment.orgs.name);
+        assignmentMap.set(assignment.user_id, current);
+      });
       setUsers(
         (usersData || []).map((dbUser: any) => ({
           ...dbUser,
+          assigned_org_ids: assignmentMap.get(dbUser.id)?.ids || [],
+          assigned_org_names: assignmentMap.get(dbUser.id)?.names || [],
           is_active: dbUser.is_active === true || dbUser.is_active === 1
         })) as AuthUser[]
       );
@@ -97,6 +123,31 @@ export const Users = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, roleFilter, statusFilter]);
+  const saveUserOrgAssignments = async (userId: number, orgIds: number[]) => {
+    const cleanOrgIds = Array.from(
+      new Set(orgIds.map((orgId) => Number(orgId)).filter(Boolean))
+    );
+    const { error: deleteError } = await supabase.
+    from('user_org_assignments').
+    delete().
+    eq('user_id', userId);
+    if (deleteError) {
+      console.warn('Could not clear user organization assignments:', deleteError.message);
+      toast.warning('User saved, but organization assignments need the Supabase assignment table.');
+      return;
+    }
+    if (cleanOrgIds.length === 0) return;
+    const { error: insertError } = await supabase.
+    from('user_org_assignments').
+    insert(cleanOrgIds.map((orgId) => ({
+      user_id: userId,
+      org_id: orgId
+    })));
+    if (insertError) {
+      console.warn('Could not save user organization assignments:', insertError.message);
+      toast.warning('User saved, but organization assignments were not saved.');
+    }
+  };
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAdmin) {
@@ -107,7 +158,9 @@ export const Users = () => {
     !currentUser.username ||
     !currentUser.email ||
     !currentUser.full_name ||
-    !currentUser.role_id)
+    !currentUser.role_id ||
+    roles.find((role) => role.id === Number(currentUser.role_id))?.name !== 'admin' &&
+    (currentUser.assigned_org_ids || []).length === 0)
 
     return;
     setIsSubmitting(true);
@@ -169,6 +222,13 @@ export const Users = () => {
         savedUser = data;
         toast.success('User updated successfully');
       }
+      if (savedUser?.id) {
+        const selectedRole = roles.find((role) => role.id === Number(currentUser.role_id));
+        await saveUserOrgAssignments(
+          Number(savedUser.id),
+          selectedRole?.name === 'admin' ? [] : currentUser.assigned_org_ids || []
+        );
+      }
       await logAudit({
         actor: user?.username || 'unknown',
         action: isNew ? 'create' : 'update',
@@ -176,7 +236,8 @@ export const Users = () => {
         entity_id: savedUser?.id || currentUser.id,
         metadata: {
           username: userData.username,
-          role_id: userData.role_id
+          role_id: userData.role_id,
+          assigned_org_ids: currentUser.assigned_org_ids || []
         }
       });
       setIsModalOpen(false);
@@ -317,6 +378,23 @@ export const Users = () => {
 
   },
   {
+    header: 'Organizations',
+    accessor: (row) =>
+    row.auth_roles?.name === 'admin' ?
+    'All organizations' :
+    (row.assigned_org_names || []).length > 0 ?
+    <div className="flex flex-wrap gap-1">
+          {row.assigned_org_names?.map((orgName) =>
+      <span
+        key={orgName}
+        className="inline-flex rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+              {orgName}
+            </span>
+      )}
+        </div> :
+    <span className="text-slate-400">Unassigned</span>
+  },
+  {
     header: 'Status',
     accessor: (row) =>
     <StatusBadge status={row.is_active ? 'active' : 'disabled'} />
@@ -390,7 +468,8 @@ export const Users = () => {
           disabled={!isAdmin}
           onClick={() => {
             setCurrentUser({
-              is_active: true
+              is_active: true,
+              assigned_org_ids: []
             });
             setNewPassword('');
             setIsModalOpen(true);
@@ -562,7 +641,11 @@ export const Users = () => {
                     onChange={(e) =>
                     setCurrentUser({
                       ...currentUser,
-                      role_id: Number(e.target.value)
+                      role_id: Number(e.target.value),
+                      assigned_org_ids:
+                      roles.find((role) => role.id === Number(e.target.value))?.name === 'admin' ?
+                      [] :
+                      currentUser.assigned_org_ids || []
                     })
                     }
                     className="input-field mt-1 capitalize">
@@ -574,6 +657,47 @@ export const Users = () => {
                         </option>
                     )}
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">
+                      Organizations
+                      {roles.find((role) => role.id === Number(currentUser.role_id))?.name !== 'admin' &&
+                    <span className="text-red-500"> *</span>
+                    }
+                    </label>
+                    {roles.find((role) => role.id === Number(currentUser.role_id))?.name === 'admin' ?
+                    <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                        Admin users can access all organizations.
+                      </p> :
+                    <div className="mt-1 max-h-36 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
+                        {orgs.map((org) =>
+                      <label
+                        key={org.id}
+                        className="flex items-center gap-2 rounded px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                            <input
+                          type="checkbox"
+                          checked={(currentUser.assigned_org_ids || []).includes(org.id)}
+                          onChange={(e) => {
+                            const currentIds = currentUser.assigned_org_ids || [];
+                            setCurrentUser({
+                              ...currentUser,
+                              assigned_org_ids: e.target.checked ?
+                              [...currentIds, org.id] :
+                              currentIds.filter((orgId) => orgId !== org.id)
+                            });
+                          }}
+                          className="h-4 w-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary" />
+                            {org.name}
+                          </label>
+                      )}
+                        {orgs.length === 0 &&
+                      <p className="px-2 py-1.5 text-sm text-slate-500">
+                            No organizations available.
+                          </p>
+                      }
+                      </div>
+                    }
                   </div>
 
                   {!currentUser.id &&
@@ -623,6 +747,8 @@ export const Users = () => {
                   !currentUser.email ||
                   !currentUser.full_name ||
                   !currentUser.role_id ||
+                  roles.find((role) => role.id === Number(currentUser.role_id))?.name !== 'admin' &&
+                  (currentUser.assigned_org_ids || []).length === 0 ||
                   !currentUser.id && !newPassword
                   }
                   className="w-full inline-flex justify-center rounded-lg border border-transparent px-4 py-2 text-base font-medium text-white shadow-sm bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50">

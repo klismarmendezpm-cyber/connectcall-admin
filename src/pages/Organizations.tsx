@@ -21,6 +21,13 @@ export const Organizations = () => {
   const { user, hasPermission } = useAuth();
   const canEdit = hasPermission(['admin']);
   const canDelete = hasPermission(['admin']);
+  const scopedOrgIds = user?.assigned_org_ids?.length ?
+  user.assigned_org_ids :
+  user?.role_name === 'admin' ?
+  null :
+  user?.org_id ?
+  [user.org_id] :
+  [];
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,7 +49,10 @@ export const Organizations = () => {
       order('name');
       if (orgError) throw orgError;
       if (orgData) {
-        const enrichedOrgs = await Promise.all(orgData.map(async (org) => {
+        const visibleOrgData = orgData.filter(
+          (org) => !scopedOrgIds || scopedOrgIds.includes(Number(org.id))
+        );
+        const enrichedOrgs = await Promise.all(visibleOrgData.map(async (org) => {
           const [{ count: peopleCount }, { count: systemsCount }] =
           await Promise.all([
           supabase.from('people').select('*', {

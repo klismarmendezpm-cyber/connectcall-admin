@@ -18,6 +18,8 @@ export interface User {
   full_name: string;
   role_id: string | number;
   role_name: Role;
+  org_id?: number | null;
+  assigned_org_ids?: number[];
   is_active: boolean;
   last_login_at?: string;
 }
@@ -46,6 +48,10 @@ const mapProfileToUser = (profile: any): User => ({
   full_name: profile.full_name,
   role_id: profile.role_id,
   role_name: (profile.auth_roles?.role_key || profile.role_key || 'readonly') as Role,
+  org_id: profile.org_id ? Number(profile.org_id) : null,
+  assigned_org_ids: Array.isArray(profile.assigned_org_ids) ?
+    profile.assigned_org_ids.map((orgId: string | number) => Number(orgId)) :
+    profile.org_id ? [Number(profile.org_id)] : [],
   is_active: profile.is_active === true || profile.is_active === 1,
   last_login_at: profile.last_login_at
 });
@@ -107,6 +113,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('vault_user');
       setIsLoading(false);
       return null;
+    }
+
+    if (session.user.email) {
+      const { data: organizationProfile } = await supabase
+        .from('auth_users')
+        .select('user_id, org_id')
+        .eq('email', session.user.email)
+        .maybeSingle();
+      let assignedOrgIds: number[] = [];
+      if (organizationProfile?.user_id) {
+        const { data: assignmentData, error: assignmentError } = await supabase
+          .from('user_org_assignments')
+          .select('org_id')
+          .eq('user_id', organizationProfile.user_id);
+        if (!assignmentError) {
+          assignedOrgIds = (assignmentData || []).map((assignment) =>
+            Number(assignment.org_id)
+          );
+        }
+      }
+      profileData = {
+        ...profileData,
+        org_id: profileData.org_id || organizationProfile?.org_id || null,
+        assigned_org_ids: assignedOrgIds.length > 0 ?
+          assignedOrgIds :
+          profileData.org_id || organizationProfile?.org_id ?
+          [Number(profileData.org_id || organizationProfile?.org_id)] :
+          []
+      };
     }
 
     const nextUser = mapProfileToUser(profileData);

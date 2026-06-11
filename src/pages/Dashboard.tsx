@@ -16,6 +16,13 @@ export const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isReadonly = user?.role_name === 'readonly';
+  const scopedOrgIds = user?.assigned_org_ids?.length ?
+  user.assigned_org_ids :
+  user?.role_name === 'admin' ?
+  null :
+  user?.org_id ?
+  [user.org_id] :
+  [];
   const [stats, setStats] = useState({
     people: 0,
     systems: 0,
@@ -29,56 +36,39 @@ export const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // In a real app, these would be concurrent Promise.all calls or a single RPC
-        // For prototype, we'll try to fetch, but fallback to mock data if it fails
-        const baseRequests = [
-        supabase.from('people').select('*', {
-          count: 'exact',
-          head: true
-        }),
+        const [
+        peopleResult,
+        systemsResult,
+        accountsResult,
+        assignmentResult,
+        { count: unreadCount },
+        activityResult] =
+        await Promise.all([
+        supabase.
+        from('people').
+        select('id:person_id, org_id'),
         isReadonly ?
         Promise.resolve({
-          count: 0
+          data: []
         }) :
-        supabase.from('systems').select('*', {
-          count: 'exact',
-          head: true
-        }),
-        supabase.from('accounts').select('*', {
-          count: 'exact',
-          head: true
-        }),
+        supabase.
+        from('systems').
+        select('id:system_id, org_id'),
         supabase.
         from('accounts').
-        select('*', {
-          count: 'exact',
-          head: true
-        }).
-        eq('status', 'active'),
+        select(
+          'account_id, status, person_id, system_id, people(org_id), systems(org_id)'
+        ),
         supabase.
-        from('accounts').
-        select('*', {
-          count: 'exact',
-          head: true
-        }).
-        eq('status', 'disabled'),
+        from('person_org_assignments').
+        select('person_id, org_id'),
         supabase.
         from('inbox_messages').
         select('*', {
           count: 'exact',
           head: true
         }).
-        eq('is_read', 0)];
-        const [
-        { count: peopleCount },
-        { count: systemsCount },
-        { count: accountsCount },
-        { count: activeCount },
-        { count: disabledCount },
-        { count: unreadCount },
-        activityResult] =
-        await Promise.all([
-        ...baseRequests,
+        eq('is_read', 0),
         isReadonly ?
         Promise.resolve({
           data: []
@@ -91,9 +81,40 @@ export const Dashboard = () => {
         }).
         limit(5)]
         );
+        if (peopleResult.error) throw peopleResult.error;
+        if ('error' in systemsResult && systemsResult.error) throw systemsResult.error;
+        if (accountsResult.error) throw accountsResult.error;
+        if (assignmentResult.error) {
+          console.warn('Person organization assignments are not available:', assignmentResult.error.message);
+        }
+        const assignmentMap = new Map<number, number[]>();
+        (assignmentResult.data || []).forEach((assignment: any) => {
+          const current = assignmentMap.get(assignment.person_id) || [];
+          current.push(Number(assignment.org_id));
+          assignmentMap.set(assignment.person_id, current);
+        });
+        const canSeePerson = (person: any) =>
+        !scopedOrgIds ||
+        scopedOrgIds.includes(Number(person?.org_id)) ||
+        (assignmentMap.get(Number(person?.id || person?.person_id)) || []).
+        some((orgId) => scopedOrgIds.includes(orgId));
+        const canSeeSystem = (system: any) =>
+        !scopedOrgIds || scopedOrgIds.includes(Number(system?.org_id));
+        const visiblePeople = (peopleResult.data || []).filter(canSeePerson);
+        const visibleSystems = (systemsResult.data || []).filter(canSeeSystem);
+        const visibleAccounts = (accountsResult.data || []).filter((account: any) =>
+        !scopedOrgIds ||
+        (
+        canSeePerson({
+          id: account.person_id,
+          org_id: account.people?.org_id
+        }) &&
+        canSeeSystem(account.systems)
+        )
+        );
         const activityData = activityResult.data || [];
         // If DB is empty/failing, use mock data for the prototype visual
-        if (peopleCount === null && systemsCount === null) {
+        if (peopleResult.data === null && systemsResult.data === null) {
           setStats({
             people: 142,
             systems: 28,
@@ -147,11 +168,11 @@ export const Dashboard = () => {
           );
         } else {
           setStats({
-            people: peopleCount || 0,
-            systems: systemsCount || 0,
-            accounts: accountsCount || 0,
-            activeAccounts: activeCount || 0,
-            disabledAccounts: disabledCount || 0,
+            people: visiblePeople.length,
+            systems: visibleSystems.length,
+            accounts: visibleAccounts.length,
+            activeAccounts: visibleAccounts.filter((account: any) => account.status === 'active').length,
+            disabledAccounts: visibleAccounts.filter((account: any) => account.status === 'disabled').length,
             unreadMessages: unreadCount || 0
           });
           setRecentActivity(
@@ -168,7 +189,7 @@ export const Dashboard = () => {
       }
     };
     fetchDashboardData();
-  }, [isReadonly]);
+  }, [isReadonly, user?.role_name, user?.org_id, user?.assigned_org_ids?.join(',')]);
 
   const userName = user?.full_name?.trim().split(/\s+/)[0] || user?.username || 'Usuario';
   const currentHour = new Date().getHours();
